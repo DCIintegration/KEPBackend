@@ -20,6 +20,7 @@ class Departamento(models.Model):
 
 class Empleado(AbstractUser):
     class Roles(models.TextChoices):
+        PROYECTOS = 'proyectos', 'Proyectos'
         INGENIERIA = 'ingenieria', 'Ingeniería'
         ADMINISTRACION = 'administracion', 'Administración'
         GERENCIA = 'gerencia', 'Gerencia'
@@ -51,3 +52,6 @@ class Empleado(AbstractUser):
 
     def is_superusuario(self):
         return self.role == self.Roles.SUPERUSUARIO
+    
+    def is_proyectos(self):
+        return  self.role == self.Roles.PROYECTOS
