@@ -9,6 +9,9 @@ class Departamento(models.Model):
 
     def calcular_nomina(self):
         return sum(empleado.sueldo for empleado in self.empleado_set.all())
+    
+    def empleados_departamento(self):
+        return self.empleado_set.count()
 
     def save(self, *args, **kwargs):
         self.nomina_mensual = self.calcular_nomina()
@@ -26,6 +29,7 @@ class Empleado(AbstractUser):
         GERENCIA = 'gerencia', 'Gerencia'
         SUPERUSUARIO = 'superusuario', 'Superusuario'
 
+    nombre = models.CharField(max_length=30 , default="User")
     role = models.CharField(max_length=20, choices=Roles.choices, default=Roles.INGENIERIA)
     puesto = models.CharField(max_length=100)
     fecha_contratacion = models.DateField()
@@ -41,6 +45,9 @@ class Empleado(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
 
+    def check_sesion(self):
+        return self.is_authenticated
+
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
 
@@ -55,3 +62,4 @@ class Empleado(AbstractUser):
     
     def is_proyectos(self):
         return  self.role == self.Roles.PROYECTOS
+    
