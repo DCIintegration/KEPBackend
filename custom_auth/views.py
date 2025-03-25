@@ -1,26 +1,121 @@
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import authenticate, login
+from custom_auth.models import Empleado, Departamento
+import json
 
-#Las vistas acontinuacion solo estaran disponibles para el super usuario
-#vista para crear usuarios
+# Vista para crear usuarios (solo superusuario)s
+@csrf_exempt
+@login_required(login_url="/login/")
 def create_user(request):
-    return
+    if not request.user.is_superuser:
+        return JsonResponse({"error": "No tienes permisos para crear usuarios"}, status=403)
+    
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            departamento = get_object_or_404(Departamento, id=data.get("departamento")) if data.get("departamento") else None
 
-#vista para eliminar usuarios
-def delete_user(request):
-    return
+            empleado, created = Empleado.objects.get_or_create(
+                email=data["email"],
+                defaults={
+                    "nombre": data["nombre"],
+                    "role": data["role"],
+                    "puesto": data["puesto"],
+                    "fecha_contratacion": data["fecha_contratacion"],
+                    "activo": data.get("activo", True),
+                    "sueldo": data["sueldo"],
+                    "departamento": departamento,
+                    "facturable": data.get("facturable", False),
+                }
+            )
+            if created:
+                return JsonResponse({"message": f"Usuario {empleado.nombre} creado correctamente"})
+            else:
+                return JsonResponse({"error": "El usuario ya existe"}, status=400)
 
-#vista para editar usuario
-def update_user(request):
-    return
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+    
+    return JsonResponse({"error": "Método no permitido"}, status=405)
 
-#Vista para visualizar usuarios
+# Vista para eliminar usuarios (solo superusuario)
+@login_required(login_url="/login/")
+def delete_user(request, empleado_id):
+    if request.user.is_superuser:
+        empleado = get_object_or_404(Empleado, id=empleado_id)
+        empleado.delete()
+        return JsonResponse({"message": f"Usuario {empleado.nombre} eliminado correctamente"})
+    return JsonResponse({"error": "No tienes permisos para eliminar usuarios"}, status=403)
+
+# Vista para actualizar usuario (solo superusuario)
+@csrf_exempt
+@login_required(login_url="/login/")
+def update_user(request, empleado_id):
+    if not request.user.is_superuser:
+        return JsonResponse({"error": "No tienes permisos para actualizar usuarios"}, status=403)
+    
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            empleado = get_object_or_404(Empleado, id=empleado_id)
+
+            empleado.nombre = data.get("nombre", empleado.nombre)
+            empleado.role = data.get("role", empleado.role)
+            empleado.puesto = data.get("puesto", empleado.puesto)
+            empleado.fecha_contratacion = data.get("fecha_contratacion", empleado.fecha_contratacion)
+            empleado.activo = data.get("activo", empleado.activo)
+            empleado.sueldo = data.get("sueldo", empleado.sueldo)
+            empleado.facturable = data.get("facturable", empleado.facturable)
+
+            if "departamento" in data:
+                empleado.departamento = get_object_or_404(Departamento, id=data["departamento"]) if data["departamento"] else None
+
+            empleado.save()
+            return JsonResponse({"message": f"Usuario {empleado.nombre} actualizado correctamente"})
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
+    return JsonResponse({"error": "Método no permitido"}, status=405)
+
+# Vista para visualizar todos los usuarios (solo superusuario)
+@login_required(login_url="/login/")
 def view_users(request):
-    return
+    if request.user.is_superuser:
+        empleados = list(Empleado.objects.values("id", "nombre", "role", "activo", "departamento__nombre", "profile_picture", "email"))
+        return JsonResponse({"Empleados": empleados})
+    
+    return JsonResponse({"error": "No tienes permisos para visualizar esta información"}, status=403)
 
-#Login (Unica vista disponible para todos los usuarios)
-def login(request):
-    return
 
-#Esta vista es un mail que se generara para confirmar la creacion de un nuevo usuario, usando el correo empresarial
-def confirmar_usuario(request):
-    return
+@csrf_exempt
+def login_view(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            email = data.get("email")
+            password = data.get("password")
+
+            if not email or not password:
+                return JsonResponse({"error": "Email y contraseña son obligatorios"}, status=400)
+
+            user = authenticate(request, username=email, password=password)
+
+            if user is not None:
+                if not user.activo:
+                    return JsonResponse({"error": "Tu cuenta está desactivada"}, status=403)
+                if not user.is_email_verified:
+                    return JsonResponse({"error": "Debes verificar tu correo"}, status=403)
+                
+                login(request, user)
+                return JsonResponse({"message": "Inicio de sesión exitoso", "user": {"nombre": user.nombre, "role": user.role, "email": user.email}})
+            
+            return JsonResponse({"error": "Credenciales incorrectas"}, status=401)
+        
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Formato JSON inválido"}, status=400)
+
+    return JsonResponse({"error": "Método no permitido"}, status=405)
