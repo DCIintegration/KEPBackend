@@ -140,5 +140,3 @@ Este proyecto se distribuye bajo la licencia [MIT](LICENSE). Si deseas más deta
 
 ¡Gracias por tu interés en contribuir al proyecto! 🙌
 ```
-
-Este archivo ahora incluye una versión más detallada con emojis para hacerlo más accesible y visualmente atractivo. También he agregado explicaciones más claras de los modelos de base de datos y los roles. ¡Avísame si necesitas más ajustes!
