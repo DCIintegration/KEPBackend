@@ -1,4 +1,4 @@
-# KEP_backend 🚀
+# KEP (KPIs Eficiencia y Productividad) Backend 🚀
 
 Este proyecto es el backend del sistema KEP, desarrollado en Python utilizando el framework Django. Proporciona la lógica de negocio y la gestión de datos para la plataforma KEP. 💻🔧
 
