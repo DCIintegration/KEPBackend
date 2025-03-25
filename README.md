@@ -1,6 +1,3 @@
-¡Claro! Te expandí el README y le agregué algunos emojis para hacerlo más visual. Aquí tienes:
-
-```markdown
 # KEP_backend 🚀
 
 Este proyecto es el backend del sistema KEP, desarrollado en Python utilizando el framework Django. Proporciona la lógica de negocio y la gestión de datos para la plataforma KEP. 💻🔧
@@ -38,7 +35,6 @@ Antes de empezar, asegúrate de tener instalados los siguientes componentes:
 1. **Clonar el repositorio**:
    ```bash
    git clone https://github.com/DCIintegration/KEP_backend.git
-   ```
 
 2. **Navegar al directorio del proyecto**:
    ```bash
