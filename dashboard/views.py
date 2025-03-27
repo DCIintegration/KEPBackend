@@ -3,10 +3,11 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
 from custom_auth.models import Empleado
 from dashboard.models import Kpi
+import json
 
 # Vista disponible para todos los usuarios, muestra los KPIs
 @login_required(login_url="/login/")
-def dashboard():
+def mainDashboard():
     kpis = list(Kpi.objects.values("id", "name", "code", "description", "kpi_type", "unit"))
     return JsonResponse({"KPIs": kpis})
 
@@ -14,18 +15,51 @@ def dashboard():
 @login_required(login_url="/login/")
 def create_KPI(request):
     if request.user.is_superuser:
-        # Aquí puedes agregar la lógica para crear un KPI
-        return JsonResponse({"message": "KPI creado exitosamente"})
+        if request.method =="POST":
+            try:
+                data = json.loads(request.body)
+
+                kpi, created = Kpi.objects.get_or_create(
+                    defaults={
+                        "code": data["code"],
+                        "name": data["name"],
+                        "description": data["description"],
+                        "kpi_type": data["kpi_type"],
+                        "unit": data["unit"],
+                    }
+                )
+                if created:
+                    return JsonResponse({"message": f"KPI {kpi.nombre} creado exitosamente"})
+                else:
+                    return JsonResponse("error:" "Este KPI ya existe")
+            except:
+                return JsonResponse()
     return JsonResponse({"error": "No tienes permisos para crear un KPI"}, status=403)
 
 # Vista disponible para el superusuario y administración
 @login_required(login_url="/login/")
 def update_KPI(request, kpi_id):
     if request.user.is_superuser or request.user.is_admin():
-        kpi = get_object_or_404(Kpi, id=kpi_id)
-        # Aquí puedes agregar la lógica para actualizar un KPI
-        return JsonResponse({"message": f"KPI {kpi.name} actualizado correctamente"})
-    return JsonResponse({"error": "No tienes permisos para actualizar un KPI"}, status=403)
+        
+        if request.method == "POST":
+            try:
+                kpi = get_object_or_404(Kpi, id=kpi_id)
+                data = json.loads(request.body)
+
+                kpi.code = data.get("code", kpi.code)
+                kpi.name = data.get("name", kpi.name)
+                kpi.description = data.get("description", kpi.description)
+                kpi.kpi_type = data.get("kpi_type", kpi.kpi_type)
+                kpi.unit = data.get("unit", kpi.unit)
+
+                kpi.save()
+                return JsonResponse({"message": f"KPI {kpi.name} actualizado correctamente"})
+            except Exception as e:
+                return JsonResponse({"error": str(e)}, status=400)
+            
+    else:
+        return JsonResponse({"error": "No tienes permisos para actualizar un KPI"}, status=405)
+    
 
 # Vista disponible solo para el superusuario
 @login_required(login_url="/login/")

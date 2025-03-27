@@ -37,7 +37,7 @@ class Empleado(AbstractUser):
     sueldo = models.PositiveIntegerField(default=0)
     departamento = models.ForeignKey('Departamento', on_delete=models.SET_NULL, null=True, blank=True)
     email = models.EmailField(unique=True)
-    is_email_verified = models.BooleanField(default=False)
+    is_email_verified = models.BooleanField(default=True)
     verification_token = models.UUIDField(default=uuid.uuid4, editable=False)
     profile_picture = models.ImageField(upload_to='profile_pics/', blank=True)
     facturable = models.BooleanField(default=False)
