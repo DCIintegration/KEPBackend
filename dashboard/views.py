@@ -1,8 +1,14 @@
-from django.http import JsonResponse
+import os
+import openai
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocumentTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from io import BytesIO
+from django.http import FileResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
-from custom_auth.models import Empleado
-from dashboard.models import Kpi
+from dashboard.models import CalculatedKpi, Kpi, KpiTarget
 import json
 
 # Vista disponible para todos los usuarios, muestra los KPIs
@@ -82,3 +88,179 @@ def view_KPI_details(kpi_id):
         "tipo": kpi.kpi_type,
         "unidad": kpi.unit,
     })
+
+def generate_kpi_explanation(kpi):
+    """
+    Generate a detailed explanation of the KPI using OpenAI API
+    """
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {
+                    "role": "system", 
+                    "content": "You are a business intelligence expert explaining KPIs in a professional, detailed manner."
+                },
+                {
+                    "role": "user", 
+                    "content": f"""Provide a comprehensive explanation of the {kpi.name} KPI (Code: {kpi.code}). 
+                    Include the following details:
+                    - What does this KPI measure?
+                    - Why is it important for businesses?
+                    - How is it typically calculated?
+                    - What are the best practices for improving this KPI?
+                    - What are potential challenges in tracking this KPI?
+                    
+                    Write in a professional, informative tone, suitable for a business report."""
+                }
+            ],
+            max_tokens=500,
+            temperature=0.7
+        )
+        
+        return response.choices[0].message.content.strip()
+    
+    except Exception as e:
+        print(f"Error generating AI explanation: {str(e)}")
+        return f"AI-generated explanation unavailable. KPI Description: {kpi.description}"
+
+@login_required
+def download_KPI_Report(request, kpi_id):
+    """
+    Generate and download a PDF report for a specific KPI with AI-generated explanation
+    """
+    try:
+        # Retrieve the KPI
+        kpi = get_object_or_404(Kpi, id=kpi_id)
+        
+        # Check if user has permission to download the report
+        if not request.user.is_authenticated:
+            return HttpResponseForbidden("You do not have permission to download this report.")
+        
+        # Generate AI explanation
+        ai_explanation = generate_kpi_explanation(kpi)
+        
+        # Create a buffer for the PDF
+        buffer = BytesIO()
+        
+        # Create the PDF document
+        doc = SimpleDocumentTemplate(buffer, pagesize=letter, 
+                                     rightMargin=72, leftMargin=72, 
+                                     topMargin=72, bottomMargin=18)
+        
+        # Container for the 'Flowable' objects
+        elements = []
+        
+        # Styles
+        styles = getSampleStyleSheet()
+        
+        # Title
+        title = Paragraph(f"KPI Report: {kpi.name}", styles['Title'])
+        elements.append(title)
+        elements.append(Spacer(1, 12))
+        
+        # KPI Details
+        details = [
+            ["KPI Code", kpi.code],
+            ["Name", kpi.name],
+            ["Description", kpi.description],
+            ["Type", kpi.get_kpi_type_display()],
+            ["Unit", kpi.unit or "N/A"]
+        ]
+        
+        details_table = Table(details, colWidths=[100, 400])
+        details_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (0,-1), colors.grey),
+            ('TEXTCOLOR', (0,0), (0,-1), colors.whitesmoke),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,-1), 10),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 12),
+            ('BACKGROUND', (0,1), (-1,-1), colors.beige),
+            ('GRID', (0,0), (-1,-1), 1, colors.black)
+        ]))
+        elements.append(details_table)
+        elements.append(Spacer(1, 12))
+        
+        # AI-Generated Explanation
+        elements.append(Paragraph("Comprehensive KPI Explanation", styles['Heading2']))
+        explanation_paragraphs = ai_explanation.split('\n\n')
+        for para in explanation_paragraphs:
+            elements.append(Paragraph(para, styles['Normal']))
+            elements.append(Spacer(1, 6))
+        
+        # Retrieve Calculated KPIs
+        calculated_kpis = CalculatedKpi.objects.filter(kpi=kpi).order_by('-input_data__period')
+        
+        # KPI Calculations Table
+        if calculated_kpis.exists():
+            calc_data = [["Period", "Value"]]
+            calc_data.extend([
+                [
+                    kpi_calc.input_data.period.strftime('%Y-%m-%d'), 
+                    f"{kpi_calc.value} {kpi.unit}"
+                ] for kpi_calc in calculated_kpis[:10]  # Limit to last 10 calculations
+            ])
+            
+            calc_table = Table(calc_data, colWidths=[200, 200])
+            calc_table.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), colors.grey),
+                ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+                ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0,0), (-1,-1), 10),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 12),
+                ('BACKGROUND', (0,1), (-1,-1), colors.beige),
+                ('GRID', (0,0), (-1,-1), 1, colors.black)
+            ]))
+            
+            elements.append(Paragraph("Recent KPI Calculations", styles['Heading2']))
+            elements.append(calc_table)
+            elements.append(Spacer(1, 12))
+        
+        # Retrieve KPI Targets
+        targets = KpiTarget.objects.filter(kpi=kpi).order_by('-period')
+        
+        if targets.exists():
+            target_data = [["Period", "Target", "Min", "Max"]]
+            target_data.extend([
+                [
+                    target.period.strftime('%Y-%m-%d'), 
+                    f"{target.target_value} {kpi.unit}",
+                    f"{target.min_value or 'N/A'} {kpi.unit}",
+                    f"{target.max_value or 'N/A'} {kpi.unit}"
+                ] for target in targets[:10]  # Limit to last 10 targets
+            ])
+            
+            target_table = Table(target_data, colWidths=[150, 150, 100, 100])
+            target_table.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), colors.grey),
+                ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+                ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0,0), (-1,-1), 10),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 12),
+                ('BACKGROUND', (0,1), (-1,-1), colors.beige),
+                ('GRID', (0,0), (-1,-1), 1, colors.black)
+            ]))
+            
+            elements.append(Paragraph("KPI Targets", styles['Heading2']))
+            elements.append(target_table)
+        
+        # Build PDF
+        doc.build(elements)
+        
+        # Get the value of the BytesIO buffer and write it to the response
+        buffer.seek(0)
+        response = FileResponse(
+            buffer, 
+            as_attachment=True, 
+            filename=f"{kpi.code}_kpi_report.pdf"
+        )
+        
+        return response
+    
+    except Exception as e:
+        # Log the error (you might want to use Django's logging)
+        print(f"Error generating KPI report: {str(e)}")
+        return HttpResponseForbidden("Could not generate the report.")
