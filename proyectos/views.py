@@ -1,3 +1,4 @@
+import datetime
 import json
 from django.shortcuts import render
 from django.http import JsonResponse
@@ -67,21 +68,69 @@ def modify_log(request, KpiInputData_id):
 @login_required(login_url="/login/")
 def upload_excel_log(request):
     if request.user.is_superuser or request.user.is_proyectos():
-        if request.method == 'POST' and request.FILES['file']:
-            file = request.FILES['file']
-            file_name = default_storage.save(file.name, ContentFile(file.read()))
-            file_path = default_storage.path(file_name)
-            
-            # Procesar el archivo Excel
-            df = pd.read_excel(file_path)
-            
-            # Aquí puedes realizar operaciones con el DataFrame df
-            # Por ejemplo, guardar los datos en la base de datos
-            
-            return JsonResponse({"message": "Archivo subido y procesado correctamente"})
+        if request.method == 'POST' and request.FILES.get('file'):
+            try:
+                file = request.FILES['file']
+                period_str = request.POST.get('period')
+                file_type = request.POST.get('file_type', 'total')
+                
+                # Validar y convertir la fecha
+                try:
+                    if period_str:
+                        period = datetime.strptime(period_str, '%Y-%m-%d').date()
+                    else:
+                        # Si no se proporciona una fecha, usar el primer día del mes actual
+                        today = datetime.now()
+                        period = datetime(today.year, today.month, 1).date()
+                except ValueError:
+                    return JsonResponse({"error": "Formato de fecha inválido. Use YYYY-MM-DD"}, status=400)
+                
+                # Verificar si ya existe un registro para este período y tipo de archivo
+                existing = KpiInputData.objects.filter(period=period, file_type=file_type).first()
+                
+                if existing:
+                    # Actualizar registro existente
+                    existing.raw_data_file.delete(save=False)  # Eliminar archivo antiguo
+                    existing.raw_data_file = file
+                    existing.save()
+                    kpi_data = existing
+                else:
+                    # Crear nuevo registro
+                    kpi_data = KpiInputData(
+                        period=period,
+                        file_type=file_type,
+                        raw_data_file=file
+                    )
+                    kpi_data.save()
+                
+                # Calcular KPIs si se tienen todos los datos necesarios
+                kpi_results = kpi_data.calcular_kpis()
+                
+                response_data = {
+                    "message": "Archivo subido y procesado correctamente",
+                    "id": kpi_data.id,
+                    "period": period.strftime('%Y-%m-%d'),
+                    "file_type": kpi_data.get_file_type_display(),
+                    "total_horas_facturables": kpi_data.total_horas_facturables,
+                    "total_horas_planta": kpi_data.total_horas_planta,
+                    "numero_empleados": kpi_data.numero_empleados
+                }
+                
+                if kpi_results:
+                    response_data["kpis"] = kpi_results
+                
+                return JsonResponse(response_data)
+                
+            except Exception as e:
+                
+                return JsonResponse({
+                    "error": f"Error al procesar el archivo: {str(e)}"
+                }, status=500)
         
+        # Si es GET o no hay archivo, devolver formulario o mensaje
         return JsonResponse({"error": "No se ha subido ningún archivo"}, status=400)
-    return JsonResponse({"error": "No tienes permiso para ver esta pagina"})
+    
+    return JsonResponse({"error": "No tienes permiso para ver esta página"}, status=403)
 
 @login_required(login_url="/login/")
 def upload_manual_log(request):
