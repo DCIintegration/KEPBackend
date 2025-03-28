@@ -1,3 +1,4 @@
+import json
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
@@ -45,11 +46,26 @@ def empleado_detalles(request, empleado_id):
 @login_required(login_url="/login/")
 def modificar_datos(request, empleado_id):
     if request.user.is_admin() or request.user.is_custom_superuser() or request.user.is_superuser:
-        empleado = get_object_or_404(Empleado, id=empleado_id)
-        return JsonResponse({
-            "id": empleado.id,
-            "nombre": empleado.nombre,
-            "puesto": empleado.puesto,
-            "sueldo": empleado.sueldo
-        })
-    return JsonResponse({"error": "No tienes permiso para modificar esta información"}, status=403)
+       if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            empleado = get_object_or_404(Empleado, id=empleado_id)
+
+            empleado.nombre = data.get("nombre", empleado.nombre)
+            empleado.role = data.get("role", empleado.role)
+            empleado.puesto = data.get("puesto", empleado.puesto)
+            empleado.fecha_contratacion = data.get("fecha_contratacion", empleado.fecha_contratacion)
+            empleado.activo = data.get("activo", empleado.activo)
+            empleado.sueldo = data.get("sueldo", empleado.sueldo)
+            empleado.facturable = data.get("facturable", empleado.facturable)
+
+            if "departamento" in data:
+                empleado.departamento = get_object_or_404(Departamento, id=data["departamento"]) if data["departamento"] else None
+
+            empleado.save()
+            return JsonResponse({"message": f"Usuario {empleado.nombre} actualizado correctamente"})
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
+    return JsonResponse({"error": "Método no permitido"}, status=405)

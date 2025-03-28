@@ -1,5 +1,3 @@
-import os
-import openai
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocumentTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib import colors
@@ -9,7 +7,9 @@ from django.http import FileResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
 from dashboard.models import CalculatedKpi, Kpi, KpiTarget
+from dashboard.utils import generate_kpi_explanation
 import json
+
 
 # Vista disponible para todos los usuarios, muestra los KPIs
 @login_required(login_url="/login/")
@@ -88,41 +88,6 @@ def view_KPI_details(kpi_id):
         "tipo": kpi.kpi_type,
         "unidad": kpi.unit,
     })
-
-def generate_kpi_explanation(kpi):
-    """
-    Generate a detailed explanation of the KPI using OpenAI API
-    """
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {
-                    "role": "system", 
-                    "content": "You are a business intelligence expert explaining KPIs in a professional, detailed manner."
-                },
-                {
-                    "role": "user", 
-                    "content": f"""Provide a comprehensive explanation of the {kpi.name} KPI (Code: {kpi.code}). 
-                    Include the following details:
-                    - What does this KPI measure?
-                    - Why is it important for businesses?
-                    - How is it typically calculated?
-                    - What are the best practices for improving this KPI?
-                    - What are potential challenges in tracking this KPI?
-                    
-                    Write in a professional, informative tone, suitable for a business report."""
-                }
-            ],
-            max_tokens=500,
-            temperature=0.7
-        )
-        
-        return response.choices[0].message.content.strip()
-    
-    except Exception as e:
-        print(f"Error generating AI explanation: {str(e)}")
-        return f"AI-generated explanation unavailable. KPI Description: {kpi.description}"
 
 @login_required
 def download_KPI_Report(request, kpi_id):

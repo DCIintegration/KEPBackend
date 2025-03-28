@@ -1,6 +1,6 @@
 from collections import defaultdict
 from django.db import models
-from dashboard.excel_procesor import FileProcessor
+from proyectos.excel_procesor import FileProcessor
 
 class Kpi(models.Model):
     """Definición de cada KPI con fórmulas específicas"""
@@ -35,7 +35,6 @@ class Kpi(models.Model):
 
 class KpiInputData(models.Model):
     """Datos de entrada necesarios para calcular los KPIs"""
-    period = models.DateField(help_text="Fecha que representa el período (ej. 2023-05-01 para mayo 2023)")
     created_at = models.DateTimeField(auto_now_add=True)
     
     # Campos de datos brutos

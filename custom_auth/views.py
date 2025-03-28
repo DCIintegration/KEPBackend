@@ -6,13 +6,6 @@ from django.contrib.auth import authenticate, login
 from custom_auth.models import Empleado, Departamento
 import json
 
-""" code = models.CharField(max_length=10, choices=KPI_CHOICES, unique=True)
-    name = models.CharField(max_length=200)
-    description = models.TextField(blank=True)
-    kpi_type = models.CharField(max_length=20, choices=KPI_TYPES)
-    unit = models.CharField(max_length=20, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)"""
-
 # Vista para crear usuarios (solo superusuario)
 @csrf_exempt
 @login_required(login_url="custom_auth/login/")
