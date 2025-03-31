@@ -1,6 +1,13 @@
 from django.db import models
 
 class KpiInputData(models.Model):
+
+    STATUS = [
+        ('correcto', 'Correcto'),
+        ('reportado', 'Reportado'),
+        ('corregido', 'Corregido'),
+    ]
+
     """Datos de entrada necesarios para calcular los KPIs"""
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -12,6 +19,7 @@ class KpiInputData(models.Model):
     dias_trabajados = models.IntegerField(null=True, blank=True, default=0)
     costo_por_hora = models.FloatField(null=True, blank=True, default=0) 
     ganancia_total = models.FloatField(null=True, blank=True, default=0)
+    status = models.CharField(max_length=20, choices=STATUS)
 
 class KPI_Calculator:
     @staticmethod

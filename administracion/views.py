@@ -4,14 +4,14 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from custom_auth.models import Departamento, Empleado
 
-@login_required(login_url="/login/")
+@login_required(login_url="custom_auth/login/")
 def dashboard_administrativo(request):
     if request.user.is_admin() or request.user.is_custom_superuser() or request.user.is_superuser:
         departamentos = list(Departamento.objects.values("id", "nombre", "nomina_mensual"))
         return JsonResponse({"departamentos": departamentos})
     return JsonResponse({"error": "No tienes permiso para ver esta información"}, status=403)
 
-@login_required(login_url="/login/")
+@login_required(login_url="custom_auth/login/")
 def departamento_detalles(request, departamento_id):
     if request.user.is_admin() or request.user.is_custom_superuser() or request.user.is_superuser:
         departamento = get_object_or_404(Departamento, id=departamento_id)
@@ -24,7 +24,7 @@ def departamento_detalles(request, departamento_id):
         })
     return JsonResponse({"error": "No tienes permiso para ver esta información"}, status=403)
 
-@login_required(login_url="/login/")
+@login_required(login_url="custom_auth/login/")
 def empleado_detalles(request, empleado_id):
     if request.user.is_admin() or request.user.is_custom_superuser() or request.user.is_superuser:
         empleado = get_object_or_404(Empleado, id=empleado_id)
@@ -43,7 +43,7 @@ def empleado_detalles(request, empleado_id):
         })
     return JsonResponse({"error": "No tienes permiso para ver esta información"}, status=403)
 
-@login_required(login_url="/login/")
+@login_required(login_url="custom_auth/login/")
 def modificar_datos(request, empleado_id):
     if request.user.is_admin() or request.user.is_custom_superuser() or request.user.is_superuser:
        if request.method == "POST":

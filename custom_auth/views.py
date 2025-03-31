@@ -13,36 +13,49 @@ def create_user(request):
     if not request.user.is_superuser:
         return JsonResponse({"error": "No tienes permisos para crear usuarios"}, status=403)
     
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            departamento = get_object_or_404(Departamento, id=data.get("departamento")) if data.get("departamento") else None
-
-            empleado, created = Empleado.objects.get_or_create(
-                email=data["email"],
-                defaults={
-                    "nombre": data["nombre"],
-                    "role": data["role"],
-                    "puesto": data["puesto"],
-                    "fecha_contratacion": data["fecha_contratacion"],
-                    "activo": data.get("activo", True),
-                    "sueldo": data["sueldo"],
-                    "departamento": departamento,
-                    "facturable": data.get("facturable", False),
-                }
-            )
-            if created:
-                return JsonResponse({"message": f"Usuario {empleado.nombre} creado correctamente"})
-            else:
-                return JsonResponse({"error": "El usuario ya existe"}, status=400)
-
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=400)
+    if request.method != "POST":
+        return JsonResponse({"error": "Método no permitido"}, status=405)
     
-    return JsonResponse({"error": "Método no permitido"}, status=405)
+    try:
+        data = json.loads(request.body)
 
+        # Validación de datos requeridos
+        required_fields = ["email", "nombre", "role", "puesto", "fecha_contratacion", "sueldo"]
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            return JsonResponse({"error": f"Faltan campos requeridos: {', '.join(missing_fields)}"}, status=400)
+
+        # Validar si el usuario ya existe
+        if Empleado.objects.filter(email=data["email"]).exists():
+            return JsonResponse({"error": "El usuario ya existe"}, status=400)
+
+        # Obtener departamento si se proporciona
+        departamento = get_object_or_404(Departamento, id=data["departamento"]) if data.get("departamento") else None
+
+        # Crear usuario
+        empleado = Empleado.objects.create(
+            email=data["email"],
+            nombre=data["nombre"],
+            role=data["role"],
+            puesto=data["puesto"],
+            fecha_contratacion=data["fecha_contratacion"],
+            activo=data.get("activo", True),
+            sueldo=data["sueldo"],
+            departamento=departamento,
+            facturable=data.get("facturable", False),
+        )
+
+        return JsonResponse({"message": f"Usuario {empleado.nombre} creado correctamente"}, status=201)
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "JSON inválido"}, status=400)
+    except KeyError as e:
+        return JsonResponse({"error": f"Falta el campo requerido: {str(e)}"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    
 # Vista para eliminar usuarios (solo superusuario)
-@login_required(login_url="/login/")
+@login_required(login_url="custom_auth/login/")
 def delete_user(request, empleado_id):
     if request.user.is_superuser:
         empleado = get_object_or_404(Empleado, id=empleado_id)
@@ -52,7 +65,7 @@ def delete_user(request, empleado_id):
 
 # Vista para actualizar usuario (solo superusuario)
 @csrf_exempt
-@login_required(login_url="/login/")
+@login_required(login_url="custom_auth/login/")
 def update_user(request, empleado_id):
     if not request.user.is_superuser:
         return JsonResponse({"error": "No tienes permisos para actualizar usuarios"}, status=403)
@@ -82,7 +95,7 @@ def update_user(request, empleado_id):
     return JsonResponse({"error": "Método no permitido"}, status=405)
 
 # Vista para visualizar todos los usuarios (solo superusuario)
-@login_required(login_url="/login/")
+@login_required(login_url="custom_auth/login/")
 def view_users(request):
     if request.user.is_superuser:
         empleados = list(Empleado.objects.values("id", "nombre", "role", "activo", "departamento__nombre", "profile_picture", "email"))

@@ -1,13 +1,8 @@
 import datetime
 import json
-from django.shortcuts import render
 from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
 from django.contrib.auth.decorators import login_required
-import pandas as pd
+
 
 from dashboard.models import KpiInputData
 
@@ -17,7 +12,7 @@ from .serializers import CompanyKPISerializer
 #quiero ver la info pro la tengo que filtrar con una funcion, asi de sencillo we, tiene que haber una pantalla principal 
 #que sea un registro con los diferentes logs de informacion, cada vez que se alimena con info de kpi con filtros
 
-@login_required(login_url="/login/")
+@login_required(login_url="custom_auth/login/")
 def view_logs(request):
     if request.user.is_superuser or request.user.is_proyectos():
         info = list(KpiInputData.objects.values("created_at", "total_horas_facturables", "total_horas_planta", "total_horas_planta", "numero_empleados", "numero_empleados_facturables", "dias_trabajados", "costo_por_hora", "ganancia_total"))
@@ -25,7 +20,7 @@ def view_logs(request):
         
     return JsonResponse({"error": "No tienes permiso para ver esta pagina"})
 
-@login_required(login_url="/login/")
+@login_required(login_url="custom_auth/login/")
 def view_log_details(request, KpiInputData_id):
     if request.user.is_superuser or request.user.is_proyectos():
         try:
@@ -38,11 +33,20 @@ def view_log_details(request, KpiInputData_id):
 #Este metodo es para reportar un log, y generara un mail a el equipo de sistemas para editar ese log
 #se tienen que mostrar pruebas de el cambio, formato de solicitud a generar
 #log se cambiara en la base de datos, todo menos fecha de creacion
-@login_required(login_url="/login/")       
-def report_log(request):
+@login_required(login_url="custom_auth/login/")      
+def report_log(request, KpiInputData_id):
+    if request.user.is_superuser or request.user.is_proyectos():
+        try:
+            log = KpiInputData.objects.get(id=KpiInputData_id)
+            log.status = "reportado"
+            log.save()
+            #Queda pendiente logica de notificaciones via correo electronico para el equipo de sistemas
+            return JsonResponse({"message": "Log reportado correctamente"})
+        except KpiInputData.DoesNotExist:
+            return JsonResponse({"error": "Log no encontrado"}, status=404)
     return JsonResponse({"message": "Reportar log"})
 
-@login_required(login_url="/login/")
+@login_required(login_url="custom_auth/login/")
 def modify_log(request, KpiInputData_id):
     if request.user.is_superuser:
         if request.method == 'POST':
@@ -65,7 +69,8 @@ def modify_log(request, KpiInputData_id):
                 return JsonResponse({"error": "Log no encontrado"}, status=404)
         return JsonResponse({"message": "sin accedo"})
 
-@login_required(login_url="/login/")
+#Trabajar en lo que puede pasar con el modelo de KPI input data 
+@login_required(login_url="custom_auth/login/")
 def upload_excel_log(request):
     if request.user.is_superuser or request.user.is_proyectos():
         if request.method == 'POST' and request.FILES.get('file'):
@@ -132,7 +137,7 @@ def upload_excel_log(request):
     
     return JsonResponse({"error": "No tienes permiso para ver esta página"}, status=403)
 
-@login_required(login_url="/login/")
+@login_required(login_url="custom_auth/login/")
 def upload_manual_log(request):
     if request.user.is_superuser or request.user.is_proyectos():
        

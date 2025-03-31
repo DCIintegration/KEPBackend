@@ -12,13 +12,13 @@ import json
 
 
 # Vista disponible para todos los usuarios, muestra los KPIs
-@login_required(login_url="/login/")
+@login_required(login_url="custom_auth/login/")
 def mainDashboard():
     kpis = list(Kpi.objects.values("id", "name", "code", "description", "kpi_type", "unit"))
     return JsonResponse({"KPIs": kpis})
 
 # Vista disponible solo para el superusuario
-@login_required(login_url="/login/")
+@login_required(login_url="custom_auth/login/")
 def create_KPI(request):
     if request.user.is_superuser:
         if request.method =="POST":
@@ -43,7 +43,7 @@ def create_KPI(request):
     return JsonResponse({"error": "No tienes permisos para crear un KPI"}, status=403)
 
 # Vista disponible para el superusuario y administración
-@login_required(login_url="/login/")
+@login_required(login_url="custom_auth/login/")
 def update_KPI(request, kpi_id):
     if request.user.is_superuser or request.user.is_admin():
         
@@ -68,7 +68,7 @@ def update_KPI(request, kpi_id):
     
 
 # Vista disponible solo para el superusuario
-@login_required(login_url="/login/")
+@login_required(login_url="custom_auth/login/")
 def delete_KPI(request, kpi_id):
     if request.user.is_superuser:
         kpi = get_object_or_404(Kpi, id=kpi_id)
@@ -77,7 +77,7 @@ def delete_KPI(request, kpi_id):
     return JsonResponse({"error": "No tienes permisos para eliminar un KPI"}, status=403)
 
 # Vista disponible para todos los usuarios, muestra detalles de un KPI
-@login_required(login_url="/login/")
+@login_required(login_url="custom_auth/login/")
 def view_KPI_details(kpi_id):
     kpi = get_object_or_404(Kpi, id=kpi_id)
     return JsonResponse({
@@ -89,12 +89,12 @@ def view_KPI_details(kpi_id):
         "unidad": kpi.unit,
     })
 
-@login_required(login_url="/login/")
+@login_required(login_url="custom_auth/login/")
 def view_KPI_goal():
     kpi_goals = list(KpiTarget.objects.values("id", "kpi__name", "period", "target_value", "min_value", "max_value"))
     return JsonResponse({"KPI Goals": kpi_goals})
 
-@login_required(login_url="/login/")
+@login_required(login_url="custom_auth/login/")
 def edit_KPI_goal(request, kpi_goal_id):
     if request.user.is_superuser or request.user.is_admin():
         if request.method == "POST":
@@ -115,7 +115,7 @@ def edit_KPI_goal(request, kpi_goal_id):
     else:
         return JsonResponse({"error": "No tienes permisos para actualizar un KPI Goal"}, status=403)
 
-@login_required(login_url="/login/")
+@login_required(login_url="custom_auth/login/")
 def delete_KPI_goal(request, kpi_goal_id):
     if request.user.is_superuser:
         kpi_goal = get_object_or_404(KpiTarget, id=kpi_goal_id)
@@ -123,7 +123,7 @@ def delete_KPI_goal(request, kpi_goal_id):
         return JsonResponse({"message": f"KPI Goal {kpi_goal.id} eliminado correctamente"})
     return JsonResponse({"error": "No tienes permisos para eliminar un KPI Goal"}, status=403)
 
-@login_required(login_url="/login/")
+@login_required(login_url="custom_auth/login/")
 def create_KPI_target(request):
     if request.user.is_superuser:
         if request.method == "POST":
@@ -147,8 +147,7 @@ def create_KPI_target(request):
                 return JsonResponse({"error": str(e)}, status=400)
     return JsonResponse({"error": "No tienes permisos para crear un KPI Target"}, status=403)
 
-
-@login_required
+@login_required(login_url="custom_auth/login/")
 def download_KPI_Report(request, kpi_id):
     """
     Generate and download a PDF report for a specific KPI with AI-generated explanation
