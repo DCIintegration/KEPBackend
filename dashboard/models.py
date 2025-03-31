@@ -1,6 +1,56 @@
-from collections import defaultdict
 from django.db import models
-from proyectos.excel_procesor import FileProcessor
+
+class KpiInputData(models.Model):
+    """Datos de entrada necesarios para calcular los KPIs"""
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    total_horas_facturables = models.FloatField(null=True, blank=True, default=0)
+    total_horas_planta = models.FloatField(null=True, blank=True, default=0)
+    total_horas_facturadas = models.FloatField(null=True, blank=True, default=0)
+    numero_empleados = models.IntegerField(null=True, blank=True, default=0) 
+    numero_empleados_facturables = models.IntegerField(null=True, blank=True, default=0)
+    dias_trabajados = models.IntegerField(null=True, blank=True, default=0)
+    costo_por_hora = models.FloatField(null=True, blank=True, default=0) 
+    ganancia_total = models.FloatField(null=True, blank=True, default=0)
+
+class KPI_Calculator:
+    @staticmethod
+    def ELDR(kpi_data):
+        return kpi_data.total_horas_facturables * kpi_data.costo_por_hora
+
+    @staticmethod
+    def RE(kpi_data):
+        return kpi_data.ganancia_total / kpi_data.numero_empleados
+
+    @staticmethod
+    def RBE(kpi_data):
+        return kpi_data.ganancia_total / kpi_data.numero_empleados_facturables
+
+    @staticmethod
+    def UBH(kpi_data):
+        total_horas = ((kpi_data.numero_empleados_facturables * 8.5) * kpi_data.numero_empleados_facturables) * kpi_data.dias_trabajados
+        return kpi_data.total_horas_facturadas / total_horas
+
+    @staticmethod
+    def UB(kpi_data):
+        total_horas = ((kpi_data.numero_empleados_facturables * 8.5) * kpi_data.numero_empleados_facturables) * kpi_data.dias_trabajados
+        return kpi_data.total_horas_facturables / total_horas
+
+    @staticmethod
+    def LM(kpi_data):
+        return kpi_data.ganancia_total / kpi_data.costo_por_hora
+
+    @staticmethod
+    def LMM(kpi_data):
+        return 8.5 * kpi_data.numero_empleados_facturables
+
+    def calculate_KPI(self, kpi_name, kpi_data):
+        kpi_methods = {method: getattr(self, method) for method in dir(self) if callable(getattr(self, method)) and not method.startswith("_")}
+        
+        if kpi_name in kpi_methods:
+            return kpi_methods[kpi_name](kpi_data)
+        else:
+            raise ValueError("KPI no encontrado")
 
 class Kpi(models.Model):
     """Definición de cada KPI con fórmulas específicas"""
@@ -12,100 +62,23 @@ class Kpi(models.Model):
         ('UB', 'Utilization Benchmark (UB)'),
         ('LM', 'Labor Multiplier (LM)'),
         ('LMM', 'Labor Maximum Multiplier (LMM)'),
-        ('DB', 'Days Backlog (DB)'),
-        ('DCH', 'Days Cash on Hand (DCH)'),
     ]
-    
-    KPI_TYPES = (
-        ('number', 'Número'),
-        ('percentage', 'Porcentaje'),
-        ('currency', 'Moneda'),
-        ('days', 'Días'),
-    )
     
     code = models.CharField(max_length=10, choices=KPI_CHOICES, unique=True)
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    kpi_type = models.CharField(max_length=20, choices=KPI_TYPES)
-    unit = models.CharField(max_length=20, blank=True)
+    data = models.ForeignKey(KpiInputData, on_delete=models.CASCADE)
+    value = models.FloatField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    def calculate_value(self):
+        calculator = KPI_Calculator()
+        self.value = calculator.calculate_KPI(self.code, self.data)
+        self.save()
     
     def __str__(self):
         return f"{self.get_code_display()} - {self.name}"
 
-class KpiInputData(models.Model):
-    """Datos de entrada necesarios para calcular los KPIs"""
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-    # Campos de datos brutos
-    raw_data_file = models.FileField(upload_to='kpi_raw_data/', null=True, blank=True)
-    file_type = models.CharField(max_length=20, choices=[('total', 'Total'), ('mensual', 'Mensual')])
-    
-    # Campos calculados (podrían ser propiedades en lugar de campos de BD)
-    total_horas_facturables = models.FloatField(null=True, blank=True, default=0)
-    total_horas_planta = models.FloatField(null=True, blank=True, default=0)
-    total_horas_facturadas = models.FloatField(null=True, blank=True, default=0)
-    numero_empleados = models.IntegerField(null=True, blank=True, default=0) 
-    numero_empleados_facturables = models.IntegerField(null=True, blank=True, default=0) #Informacion de administracion, lo que registra estuardo para cada empleado de su nomina
-    dias_trabajados = models.IntegerField(null=True, blank=True, default=0)
-    costo_por_hora = models.FloatField(null=True, blank=True, default=0) 
-    ganancia_total = models.FloatField(null=True, blank=True, default=0)
-    
-    class Meta:
-        verbose_name = "Datos de Entrada para KPIs"
-        ordering = ['-period']
-        unique_together = [['period', 'file_type']]
-    
-    def __str__(self):
-        return f"Datos para {self.period.strftime('%Y-%m')} ({self.get_file_type_display()})"
-    
-    def save(self, *args, **kwargs):
-        # Procesar el archivo si se ha subido uno nuevo
-        if self.raw_data_file and not self.pk:
-            self.process_raw_file()
-        super().save(*args, **kwargs)
-    
-    def process_raw_file(self):
-        """Procesa el archivo subido y extrae los datos"""
-        processor = FileProcessor(
-            log_function=lambda msg: print(msg),  # Puedes reemplazar con tu sistema de logging
-            is_plant_task_function=lambda actividad: "planta" in actividad.lower()
-        )
-        
-        # Diccionarios temporales para almacenar datos
-        horas_por_ot = defaultdict(lambda: {"total": 0, "planta": 0})
-        horas_mensuales_por_ot = defaultdict(lambda: {"total": 0, "planta": 0})
-        info_por_ot = {}
-        
-        # Procesar el archivo
-        file_path = self.raw_data_file.path
-        processor.process_raw_data(
-            file_path=file_path,
-            file_type=self.file_type,
-            horas_por_ot=horas_por_ot,
-            horas_mensuales_por_ot=horas_mensuales_por_ot,
-            info_por_ot=info_por_ot
-        )
-        
-        # Calcular totales
-        self.total_horas_facturables = sum(ot_data["total"] for ot_data in horas_por_ot.values()) #Las alimentara osmar 
-        self.total_horas_planta = sum(ot_data["planta"] for ot_data in horas_por_ot.values()) # Las horas planta seran las horas reportadas en el excel
-
-class CalculatedKpi(models.Model):
-    """KPIs calculados a partir de los datos de entrada"""
-    kpi = models.ForeignKey(Kpi, on_delete=models.CASCADE)
-    input_data = models.ForeignKey(KpiInputData, on_delete=models.CASCADE, related_name='calculated_kpis')
-    value = models.FloatField()
-    last_modified = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        verbose_name = "KPI Calculado"
-        verbose_name_plural = "KPIs Calculados"
-        ordering = ['kpi', 'input_data__period']
-        unique_together = [['kpi', 'input_data']]
-    
-    def __str__(self):
-        return f"{self.kpi.code} - {self.input_data.period}: {self.value}"
 
 class KpiTarget(models.Model):
     """Objetivos para cada KPI por período"""

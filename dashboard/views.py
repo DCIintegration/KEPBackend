@@ -89,6 +89,65 @@ def view_KPI_details(kpi_id):
         "unidad": kpi.unit,
     })
 
+@login_required(login_url="/login/")
+def view_KPI_goal():
+    kpi_goals = list(KpiTarget.objects.values("id", "kpi__name", "period", "target_value", "min_value", "max_value"))
+    return JsonResponse({"KPI Goals": kpi_goals})
+
+@login_required(login_url="/login/")
+def edit_KPI_goal(request, kpi_goal_id):
+    if request.user.is_superuser or request.user.is_admin():
+        if request.method == "POST":
+            try:
+                data = json.loads(request.body)
+                kpi_goal = get_object_or_404(KpiTarget, id=kpi_goal_id)
+
+                kpi_goal.kpi = data.get("kpi", kpi_goal.kpi)
+                kpi_goal.period = data.get("period", kpi_goal.period)
+                kpi_goal.target_value = data.get("target_value", kpi_goal.target_value)
+                kpi_goal.min_value = data.get("min_value", kpi_goal.min_value)
+                kpi_goal.max_value = data.get("max_value", kpi_goal.max_value)
+
+                kpi_goal.save()
+                return JsonResponse({"message": f"KPI Goal {kpi_goal.id} actualizado correctamente"})
+            except Exception as e:
+                return JsonResponse({"error": str(e)}, status=400)
+    else:
+        return JsonResponse({"error": "No tienes permisos para actualizar un KPI Goal"}, status=403)
+
+@login_required(login_url="/login/")
+def delete_KPI_goal(request, kpi_goal_id):
+    if request.user.is_superuser:
+        kpi_goal = get_object_or_404(KpiTarget, id=kpi_goal_id)
+        kpi_goal.delete()
+        return JsonResponse({"message": f"KPI Goal {kpi_goal.id} eliminado correctamente"})
+    return JsonResponse({"error": "No tienes permisos para eliminar un KPI Goal"}, status=403)
+
+@login_required(login_url="/login/")
+def create_KPI_target(request):
+    if request.user.is_superuser:
+        if request.method == "POST":
+            try:
+                data = json.loads(request.body)
+
+                kpi_target, created = KpiTarget.objects.get_or_create(
+                    defaults={
+                        "kpi": data["kpi"],
+                        "period": data["period"],
+                        "target_value": data["target_value"],
+                        "min_value": data["min_value"],
+                        "max_value": data["max_value"],
+                    }
+                )
+                if created:
+                    return JsonResponse({"message": f"KPI Target {kpi_target.id} creado exitosamente"})
+                else:
+                    return JsonResponse({"error": "Este KPI Target ya existe"})
+            except Exception as e:
+                return JsonResponse({"error": str(e)}, status=400)
+    return JsonResponse({"error": "No tienes permisos para crear un KPI Target"}, status=403)
+
+
 @login_required
 def download_KPI_Report(request, kpi_id):
     """
