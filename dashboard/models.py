@@ -19,7 +19,7 @@ class KpiInputData(models.Model):
     dias_trabajados = models.IntegerField(null=True, blank=True, default=0)
     costo_por_hora = models.FloatField(null=True, blank=True, default=0) 
     ganancia_total = models.FloatField(null=True, blank=True, default=0)
-    status = models.CharField(max_length=20, choices=STATUS)
+    status = models.CharField(max_length=20, choices=STATUS, default='correcto')
 
 class KPI_Calculator:
     @staticmethod
@@ -71,18 +71,18 @@ class Kpi(models.Model):
         ('LM', 'Labor Multiplier (LM)'),
         ('LMM', 'Labor Maximum Multiplier (LMM)'),
     ]
+
+    def calculate_value(self):
+        calculator = KPI_Calculator()
+        self.value = calculator.calculate_KPI(self.code, self.data)
+        self.save()
     
     code = models.CharField(max_length=10, choices=KPI_CHOICES, unique=True)
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     data = models.ForeignKey(KpiInputData, on_delete=models.CASCADE)
-    value = models.FloatField(null=True, blank=True)
+    value = models.FloatField(calculate_value)
     created_at = models.DateTimeField(auto_now_add=True)
-    
-    def calculate_value(self):
-        calculator = KPI_Calculator()
-        self.value = calculator.calculate_KPI(self.code, self.data)
-        self.save()
     
     def __str__(self):
         return f"{self.get_code_display()} - {self.name}"
