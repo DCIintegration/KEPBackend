@@ -139,4 +139,3 @@ Este proyecto se distribuye bajo la licencia [MIT](LICENSE). Si deseas más deta
 ---
 
 ¡Gracias por tu interés en contribuir al proyecto! 🙌
-```
