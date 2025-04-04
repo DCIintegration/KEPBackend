@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import KpiInputData
+from dashboard.models import KpiInputData  
 
 class CompanyKPISerializer(serializers.ModelSerializer):
     """

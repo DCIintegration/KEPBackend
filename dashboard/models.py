@@ -72,16 +72,16 @@ class Kpi(models.Model):
         ('LMM', 'Labor Maximum Multiplier (LMM)'),
     ]
 
-    def calculate_value(self):
-        calculator = KPI_Calculator()
-        self.value = calculator.calculate_KPI(self.code, self.data)
-        self.save()
+    def save(self, *args, **kwargs):
+        if not self.pk or 'data' in kwargs.get('update_fields', []):
+            self.calculate_value()
+        super().save(*args, **kwargs)
     
     code = models.CharField(max_length=10, choices=KPI_CHOICES, unique=True)
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    data = models.ForeignKey(KpiInputData, on_delete=models.CASCADE)
-    value = models.FloatField(calculate_value)
+    data = models.ForeignKey(KpiInputData, on_delete=models.CASCADE, default=None)
+    value = models.FloatField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):

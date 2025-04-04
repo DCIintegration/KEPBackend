@@ -1,6 +1,5 @@
 from django.db import models
 from custom_auth.models import Empleado
-from django.core.validators import MinValueValidator
 from django.utils import timezone
 
 

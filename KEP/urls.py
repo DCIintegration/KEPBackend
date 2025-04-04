@@ -22,5 +22,5 @@ urlpatterns = [
     path("custom_auth/", include("custom_auth.urls")),
     path("administracion/", include("administracion.urls")),
     path("dashboard/", include("dashboard.urls")),
-    path("proyectos", include("proyectos.url"))
+    path("proyectos/", include("proyectos.urls"))
 ]
