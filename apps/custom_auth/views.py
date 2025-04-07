@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login
-from custom_auth.models import Empleado, Departamento
+from apps.custom_auth.models import Empleado, Departamento
 import json
 
 # Vista para crear usuarios (solo superusuario)

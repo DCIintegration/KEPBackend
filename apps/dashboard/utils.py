@@ -2,42 +2,10 @@ from django.shortcuts import get_object_or_404
 import openai
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
-from dashboard.models import KpiInputData
+from apps.dashboard.models import KpiInputData
 from datetime import timedelta
 
 class Utils:
-    @staticmethod
-    def ELDR(kpi_data):
-        return kpi_data.total_horas_facturables * kpi_data.costo_por_hora
-
-    @staticmethod
-    def RE(kpi_data):
-        return kpi_data.ganancia_total / kpi_data.numero_empleados
-
-    @staticmethod
-    def RBE(kpi_data):
-        return kpi_data.ganancia_total / kpi_data.numero_empleados_facturables
-
-    @staticmethod
-    def UBH(kpi_data):
-        total_horas = ((kpi_data.numero_empleados_facturables * 8.5) * kpi_data.numero_empleados_facturables) * kpi_data.dias_trabajados
-        return kpi_data.total_horas_facturadas / total_horas
-
-    @staticmethod
-    def UB(kpi_data):
-        total_horas = ((kpi_data.numero_empleados_facturables * 8.5) * kpi_data.numero_empleados_facturables) * kpi_data.dias_trabajados
-        return kpi_data.total_horas_facturables / total_horas
-
-    @staticmethod
-    def LM(kpi_data):
-        return kpi_data.ganancia_total / kpi_data.costo_por_hora
-
-    @staticmethod
-    def LMM(kpi_data):
-        return 8.5 * kpi_data.numero_empleados_facturables
-
- 
-
     
     def generate_kpi_explanation(kpi,kpi_input_data_id):
         """

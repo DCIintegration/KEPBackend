@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
-from dashboard.models import Kpi, KpiTarget
+from apps.dashboard.models import Kpi, KpiTarget
 import json
 
 

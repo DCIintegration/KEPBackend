@@ -2,7 +2,7 @@ import datetime
 import json
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
-from dashboard.models import KpiInputData
+from apps.dashboard.models import KpiInputData
 from .serializers import CompanyKPISerializer
 
 #quiero ver la info pro la tengo que filtrar con una funcion, asi de sencillo we, tiene que haber una pantalla principal 

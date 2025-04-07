@@ -2,7 +2,7 @@ import json
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
-from custom_auth.models import Departamento, Empleado
+from apps.custom_auth.models import Departamento, Empleado
 
 @login_required(login_url="custom_auth/login/")
 def dashboard_administrativo(request):

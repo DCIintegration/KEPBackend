@@ -1,5 +1,5 @@
 from django.db import models
-from custom_auth.models import Empleado
+from apps.custom_auth.models import Empleado
 from django.utils import timezone
 
 

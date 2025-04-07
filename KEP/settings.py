@@ -39,10 +39,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     "rest_framework",
     #personal modules
-    "custom_auth",
-    "administracion",
-    "dashboard",
-    "proyectos",
+    "apps.custom_auth",
+    "apps.dashboard",
+    "apps.administracion",
+    "apps.proyectos",
 ]
 
 MIDDLEWARE = [
