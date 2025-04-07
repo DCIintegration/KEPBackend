@@ -220,12 +220,6 @@ Para despliegue en producción:
 
 Este proyecto está licenciado bajo la Licencia MIT - consulta el archivo LICENSE para más detalles.
 
-## Agradecimientos 🙏
-
-- A la comunidad de Django por el increíble framework
-- A todos los contribuyentes que han ayudado a dar forma a este proyecto
-- Un agradecimiento especial al equipo de Integración DEI por su continuo apoyo
-
 ---
 
 © 2025 Equipo de Desarrollo KEP. Todos los derechos reservados.
