@@ -1,14 +1,14 @@
-# Backend KEP (KPIs Eficiencia y Productividad) 🚀
+# Backend KEP (KPIs Eficiencia y Productividad)
 
 ![Django](https://img.shields.io/badge/Django-5.1.7-green)
 ![DRF](https://img.shields.io/badge/DRF-latest-blue)
 ![Python](https://img.shields.io/badge/Python-3.x-blue)
 
-## Descripción General 📋
+## Descripción General
 
 KEP (KPIs Eficiencia y Productividad) es un sistema backend integral diseñado para rastrear, analizar y gestionar indicadores clave de rendimiento para la eficiencia y productividad empresarial. Construido con Django y Django REST Framework, esta aplicación proporciona APIs robustas para la gestión de KPIs, administración de empleados, seguimiento de proyectos y análisis de dashboards.
 
-## Características ✨
+## Características
 
 - **Sistema de Autenticación Personalizado** - Gestión de usuarios basada en roles con permisos granulares
 - **Gestión de KPIs** - Crear, rastrear y analizar diversos indicadores de rendimiento empresarial
@@ -17,7 +17,7 @@ KEP (KPIs Eficiencia y Productividad) es un sistema backend integral diseñado p
 - **Procesamiento de Excel/CSV** - Procesadores de archivos integrados para importar y analizar datos empresariales
 - **Endpoints API REST** - API bien documentada para integración con frontend
 
-## Arquitectura 🏗️
+## Arquitectura
 
 KEP sigue una arquitectura modular con cuatro aplicaciones Django principales:
 
@@ -26,7 +26,7 @@ KEP sigue una arquitectura modular con cuatro aplicaciones Django principales:
 3. **dashboard** - Procesa y muestra datos de KPIs y análisis
 4. **proyectos** - Administra información de proyectos, asignaciones y asignación de recursos
 
-## Stack Tecnológico 💻
+## Stack Tecnológico
 
 - **Framework**: Django 5.1+
 - **API**: Django REST Framework
@@ -34,7 +34,7 @@ KEP sigue una arquitectura modular con cuatro aplicaciones Django principales:
 - **Procesamiento de Archivos**: Pandas, OpenPyXL
 - **Visualización de Datos**: Soporte para varios formatos a través de serializadores
 
-## Instalación 🛠️
+## Instalación
 
 ### Requisitos Previos
 
@@ -85,7 +85,7 @@ KEP sigue una arquitectura modular con cuatro aplicaciones Django principales:
    - Interfaz de administración: http://127.0.0.1:8000/admin/
    - Endpoints de API: http://127.0.0.1:8000/api/
 
-## Endpoints de API 🌐
+## Endpoints de API
 
 ### Autenticación
 - `POST /custom_auth/login/` - Inicio de sesión de usuario
@@ -115,7 +115,7 @@ KEP sigue una arquitectura modular con cuatro aplicaciones Django principales:
 - `POST /proyectos/upload_manual_log/` - Ingresar datos de KPI manualmente
 - `PUT /proyectos/modify_log/<id>/` - Modificar datos de registro existentes (solo superusuario)
 
-## Modelos de Datos 📊
+## Modelos de Datos
 
 ### Gestión de Usuarios
 
@@ -180,7 +180,7 @@ AsignacionProyecto
 ├── tarifa_hora - Tarifa por hora
 ```
 
-## Consideraciones de Seguridad 🔒
+## Consideraciones de Seguridad
 
 - El sistema utiliza el sistema de autenticación integrado de Django, extendido con modelos de usuario personalizados
 - El control de acceso basado en roles está implementado en toda la aplicación
@@ -188,7 +188,7 @@ AsignacionProyecto
 - Todos los endpoints sensibles requieren autenticación
 - **Importante:** La clave secreta de Django en settings.py debe cambiarse y almacenarse de forma segura para producción
 
-## Directrices de Desarrollo 📝
+## Directrices de Desarrollo
 
 1. **Estilo de Código**: Seguir PEP 8 y los estándares de codificación de Django
 2. **Documentación**: Documentar todas las funciones, clases y endpoints
@@ -196,7 +196,7 @@ AsignacionProyecto
 4. **Ramificación**: Usar ramas de características y enviar solicitudes de extracción para revisión
 5. **Seguridad**: Nunca confirmar credenciales sensibles en el repositorio
 
-## Despliegue 🌩️
+## Despliegue
 
 Para despliegue en producción:
 
@@ -208,7 +208,7 @@ Para despliegue en producción:
 6. Configurar HTTPS
 7. Usar variables de entorno para configuraciones sensibles
 
-## Contribuir 🤝
+## Contribuir
 
 1. Hacer un fork del repositorio
 2. Crear una rama de características (`git checkout -b feature/caracteristica-asombrosa`)
@@ -216,10 +216,9 @@ Para despliegue en producción:
 4. Empujar a la rama (`git push origin feature/caracteristica-asombrosa`)
 5. Abrir una Solicitud de Extracción
 
-## Licencia 📄
+## Licencia
 
 Este proyecto está licenciado bajo la Licencia MIT - consulta el archivo LICENSE para más detalles.
-
 ---
 
 © 2025 Equipo de Desarrollo KEP. Todos los derechos reservados.
