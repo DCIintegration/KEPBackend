@@ -1,141 +1,231 @@
-# KEP (KPIs Eficiencia y Productividad) Backend 🚀
+# Backend KEP (KPIs Eficiencia y Productividad) 🚀
 
-Este proyecto es el backend del sistema KEP, desarrollado en Python utilizando el framework Django. Proporciona la lógica de negocio y la gestión de datos para la plataforma KEP. 💻🔧
+![Django](https://img.shields.io/badge/Django-5.1.7-green)
+![DRF](https://img.shields.io/badge/DRF-latest-blue)
+![Python](https://img.shields.io/badge/Python-3.x-blue)
 
-## Tabla de Contenidos 📑
-- [Estructura del Proyecto](#estructura-del-proyecto)
-- [Requisitos Previos](#requisitos-previos)
-- [Instalación](#instalación)
-- [Uso](#uso)
-- [Estructura de la Base de Datos](#estructura-de-la-base-de-datos)
-- [Contribuciones](#contribuciones)
-- [Licencia](#licencia)
+## Descripción General 📋
 
-## Estructura del Proyecto 📁
+KEP (KPIs Eficiencia y Productividad) es un sistema backend integral diseñado para rastrear, analizar y gestionar indicadores clave de rendimiento para la eficiencia y productividad empresarial. Construido con Django y Django REST Framework, esta aplicación proporciona APIs robustas para la gestión de KPIs, administración de empleados, seguimiento de proyectos y análisis de dashboards.
 
-El proyecto se organiza en varios módulos clave para mantener todo estructurado y organizado:
+## Características ✨
 
-- **KEP/**: Contiene la configuración principal de Django 🛠️.
-- **administracion/**: Módulo encargado de la administración de usuarios y permisos 👥.
-- **custom_auth/**: Maneja la autenticación personalizada de usuarios 🔑.
-- **dashboard/**: Gestiona la lógica del panel de control 📊.
-- **kpi_output/**: Responsable de la generación y gestión de indicadores clave de rendimiento (KPIs) 📈.
-- **proyectos/**: Administra la creación y seguimiento de proyectos 📅.
+- **Sistema de Autenticación Personalizado** - Gestión de usuarios basada en roles con permisos granulares
+- **Gestión de KPIs** - Crear, rastrear y analizar diversos indicadores de rendimiento empresarial
+- **Seguimiento de Proyectos** - Monitorear proyectos, asignar empleados y controlar horas facturables
+- **Panel Administrativo** - Visualizar datos departamentales e información de empleados
+- **Procesamiento de Excel/CSV** - Procesadores de archivos integrados para importar y analizar datos empresariales
+- **Endpoints API REST** - API bien documentada para integración con frontend
 
-## Requisitos Previos 🧑‍💻
+## Arquitectura 🏗️
 
-Antes de empezar, asegúrate de tener instalados los siguientes componentes:
+KEP sigue una arquitectura modular con cuatro aplicaciones Django principales:
 
-- **Python 3.x** 🐍
-- **Django** 🖥️
-- **SQLite** (o el gestor de base de datos que prefieras) 🗄️
+1. **custom_auth** - Maneja la autenticación y gestión de usuarios con permisos basados en roles
+2. **administracion** - Gestiona funciones administrativas, departamentos y detalles de empleados
+3. **dashboard** - Procesa y muestra datos de KPIs y análisis
+4. **proyectos** - Administra información de proyectos, asignaciones y asignación de recursos
+
+## Stack Tecnológico 💻
+
+- **Framework**: Django 5.1+
+- **API**: Django REST Framework
+- **Base de Datos**: SQLite (configurable para bases de datos en producción)
+- **Procesamiento de Archivos**: Pandas, OpenPyXL
+- **Visualización de Datos**: Soporte para varios formatos a través de serializadores
 
 ## Instalación 🛠️
 
-1. **Clonar el repositorio**:
-   ```bash
-   git clone https://github.com/DCIintegration/KEP_backend.git
+### Requisitos Previos
 
-2. **Navegar al directorio del proyecto**:
+- Python 3.x
+- pip (gestor de paquetes de Python)
+- Herramienta de entorno virtual (recomendado)
+
+### Configuración Paso a Paso
+
+1. **Clonar el repositorio**
    ```bash
-   cd KEP_backend
+   git clone https://github.com/tunombredeusuario/KEP-backend.git
+   cd KEP-backend
    ```
 
-3. **Crear y activar un entorno virtual**:
+2. **Crear y activar un entorno virtual**
    ```bash
-   python3 -m venv env
-   source env/bin/activate  # En Windows usa `env\\Scripts\\activate`
+   python -m venv venv
+   
+   # En Windows
+   venv\Scripts\activate
+   
+   # En macOS/Linux
+   source venv/bin/activate
    ```
 
-4. **Instalar las dependencias**:
+3. **Instalar dependencias**
    ```bash
    pip install -r requirements.txt
    ```
 
-5. **Aplicar migraciones a la base de datos**:
+4. **Ejecutar migraciones**
    ```bash
    python manage.py migrate
    ```
 
-6. **Crear un superusuario**:
+5. **Crear un superusuario**
    ```bash
    python manage.py createsuperuser
    ```
 
-7. **Iniciar el servidor de desarrollo**:
+6. **Iniciar el servidor de desarrollo**
    ```bash
    python manage.py runserver
    ```
 
-   Accede a `http://localhost:8000/` en tu navegador. 🌐
+7. **Acceder a la aplicación**
+   - Interfaz de administración: http://127.0.0.1:8000/admin/
+   - Endpoints de API: http://127.0.0.1:8000/api/
 
-## Uso 🔍
+## Endpoints de API 🌐
 
-- **Panel de Administración**: Accede a `http://localhost:8000/admin/` e inicia sesión con el superusuario creado anteriormente para gestionar los modelos y datos de la aplicación. 👨‍💻
-  
-- **APIs**: Revisa los archivos `urls.py` en cada módulo para conocer las rutas disponibles. 🚀
+### Autenticación
+- `POST /custom_auth/login/` - Inicio de sesión de usuario
+- `GET /custom_auth/view_users/` - Listar todos los usuarios (solo superusuario)
+- `POST /custom_auth/create_user/` - Crear nuevo usuario (solo superusuario)
+- `PUT /custom_auth/update_user/<id>/` - Actualizar usuario (solo superusuario)
+- `DELETE /custom_auth/delete_user/<id>/` - Eliminar usuario (solo superusuario)
 
-## Estructura de la Base de Datos 🗃️
+### Administración
+- `GET /administracion/dashboard_administrativo/` - Vista general del panel administrativo
+- `GET /administracion/departamento_detalles/<id>/` - Detalles del departamento
+- `GET /administracion/empleado_detalles/<id>/` - Detalles del empleado
+- `PUT /administracion/modificar_datos/<id>/` - Modificar datos del empleado
 
-La base de datos sigue un esquema relacional con los siguientes modelos principales:
+### Dashboard
+- `GET /dashboard/main_dashboard/` - Vista general del dashboard de KPIs
+- `POST /dashboard/create_KPI/` - Crear nuevo KPI (solo superusuario)
+- `PUT /dashboard/update_kpi/<id>/` - Actualizar KPI (solo superusuario/admin)
+- `DELETE /dashboard/delete_kpi/<id>/` - Eliminar KPI (solo superusuario)
+- `GET /dashboard/kpi_details/<id>/` - Ver detalles del KPI
 
-### Modelo `Usuario` 👤
-Este modelo gestiona la información de los usuarios del sistema, como roles y autenticación.
+### Proyectos
+- `GET /proyectos/view_logs/` - Ver todos los registros de entrada de KPI
+- `GET /proyectos/view_log_details/<id>/` - Ver detalles de un registro específico
+- `POST /proyectos/report_log/` - Reportar problemas con datos de registro
+- `POST /proyectos/upload_excel_log/` - Subir datos Excel para cálculo de KPI
+- `POST /proyectos/upload_manual_log/` - Ingresar datos de KPI manualmente
+- `PUT /proyectos/modify_log/<id>/` - Modificar datos de registro existentes (solo superusuario)
 
-```python
-class Usuario(AbstractUser):
-    rol = models.CharField(max_length=50, choices=[('Ingeniería', 'Ingeniería'), ('Administración', 'Administración'), ('Gerencia', 'Gerencia'), ('Superusuario', 'Superusuario')])
+## Modelos de Datos 📊
+
+### Gestión de Usuarios
+
+```
+Empleado (Usuario Extendido)
+├── nombre - Nombre del empleado
+├── role - Rol del usuario (ingenieria, administracion, gerencia, superusuario)
+├── puesto - Posición laboral
+├── fecha_contratacion - Fecha de contratación
+├── activo - Estado activo
+├── sueldo - Salario
+├── departamento - Departamento (Clave Foránea)
+├── email - Correo electrónico (único)
+├── facturable - Estado facturable
 ```
 
-- **rol**: Define el rol del usuario en el sistema (Ingeniería, Administración, Gerencia, Superusuario). Solo el Superusuario puede crear otros usuarios.
+### Sistema de KPI
 
-### Modelo `Proyecto` 📂
-Este modelo administra la información sobre los proyectos en el sistema.
+```
+KpiInputData
+├── total_horas_facturables - Total de horas facturables
+├── total_horas_planta - Total de horas en planta
+├── total_horas_facturadas - Total de horas facturadas
+├── numero_empleados - Número de empleados
+├── numero_empleados_facturables - Número de empleados facturables
+├── dias_trabajados - Días trabajados
+├── costo_por_hora - Costo por hora
+├── ganancia_total - Ganancia total
+├── status - Estado (correcto, reportado, corregido)
 
-```python
-class Proyecto(models.Model):
-    nombre = models.CharField(max_length=255)
-    descripcion = models.TextField()
-    fecha_inicio = models.DateField()
-    fecha_fin = models.DateField(null=True, blank=True)
-    responsable = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+Kpi
+├── code - Código KPI (ELDR, RE, RBE, UBH, etc.)
+├── name - Nombre del KPI
+├── description - Descripción
+├── data - Datos de entrada (Clave Foránea)
+├── value - Valor calculado
 ```
 
-- **nombre**: Nombre del proyecto.
-- **descripcion**: Descripción detallada del proyecto.
-- **fecha_inicio**: Fecha de inicio del proyecto.
-- **fecha_fin**: Fecha de finalización del proyecto (opcional).
-- **responsable**: El usuario encargado del proyecto (relación con el modelo `Usuario`).
+### Gestión de Proyectos
 
-### Modelo `KPI` 📊
-Este modelo se encarga de gestionar los indicadores clave de rendimiento (KPIs) de cada proyecto.
+```
+Proyecto
+├── nombre - Nombre del proyecto
+├── descripcion - Descripción
+├── fecha_inicio - Fecha de inicio
+├── fecha_fin_estimada - Fecha estimada de finalización
+├── fecha_fin_real - Fecha real de finalización
+├── estado - Estado (planificacion, desarrollo, testing, etc.)
+├── presupuesto - Presupuesto
+├── empleados - Empleados (Muchos a muchos a través de AsignacionProyecto)
 
-```python
-class KPI(models.Model):
-    nombre = models.CharField(max_length=255)
-    valor = models.FloatField()
-    fecha = models.DateField()
-    proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE)
+AsignacionProyecto
+├── proyecto - Proyecto (Clave Foránea)
+├── empleado - Empleado (Clave Foránea)
+├── rol - Rol en el proyecto
+├── fecha_inicio - Fecha de inicio
+├── fecha_fin - Fecha de finalización
+├── horas_asignadas - Horas asignadas
+├── horas_reales - Horas reales
+├── es_facturable - Estado facturable
+├── costo_hora - Costo por hora
+├── tarifa_hora - Tarifa por hora
 ```
 
-- **nombre**: Nombre del KPI (por ejemplo, "Ventas trimestrales").
-- **valor**: El valor asociado al KPI (por ejemplo, "5000").
-- **fecha**: Fecha en la que se registró el KPI.
-- **proyecto**: El proyecto asociado a este KPI (relación con el modelo `Proyecto`).
+## Consideraciones de Seguridad 🔒
 
-## Contribuciones 🤝
+- El sistema utiliza el sistema de autenticación integrado de Django, extendido con modelos de usuario personalizados
+- El control de acceso basado en roles está implementado en toda la aplicación
+- La autenticación basada en JWT o sesiones puede configurarse según los requisitos
+- Todos los endpoints sensibles requieren autenticación
+- **Importante:** La clave secreta de Django en settings.py debe cambiarse y almacenarse de forma segura para producción
 
-Si deseas contribuir a este proyecto, sigue estos pasos:
+## Directrices de Desarrollo 📝
 
-1. **Realiza un fork del repositorio**: Haz clic en el botón "Fork" en GitHub.
-2. **Crea una nueva rama con tu cambio**: Usa un nombre descriptivo para la rama.
-3. **Haz commit de tus modificaciones**: Realiza commits claros y descriptivos.
-4. **Envía un pull request**: Asegúrate de que tus cambios no rompen nada antes de enviar el pull request.
+1. **Estilo de Código**: Seguir PEP 8 y los estándares de codificación de Django
+2. **Documentación**: Documentar todas las funciones, clases y endpoints
+3. **Pruebas**: Escribir pruebas para nuevas características y asegurarse de que pasen antes de enviar
+4. **Ramificación**: Usar ramas de características y enviar solicitudes de extracción para revisión
+5. **Seguridad**: Nunca confirmar credenciales sensibles en el repositorio
 
-## Licencia 📜
+## Despliegue 🌩️
 
-Este proyecto se distribuye bajo la licencia [MIT](LICENSE). Si deseas más detalles sobre la licencia, revisa el archivo LICENSE del repositorio.
+Para despliegue en producción:
+
+1. Establecer `DEBUG = False` en settings.py
+2. Configurar una base de datos lista para producción (se recomienda PostgreSQL)
+3. Configurar el servicio adecuado de archivos estáticos
+4. Usar un servidor WSGI como Gunicorn
+5. Configurar un proxy inverso (Nginx/Apache)
+6. Configurar HTTPS
+7. Usar variables de entorno para configuraciones sensibles
+
+## Contribuir 🤝
+
+1. Hacer un fork del repositorio
+2. Crear una rama de características (`git checkout -b feature/caracteristica-asombrosa`)
+3. Confirmar tus cambios (`git commit -m 'Añadir característica asombrosa'`)
+4. Empujar a la rama (`git push origin feature/caracteristica-asombrosa`)
+5. Abrir una Solicitud de Extracción
+
+## Licencia 📄
+
+Este proyecto está licenciado bajo la Licencia MIT - consulta el archivo LICENSE para más detalles.
+
+## Agradecimientos 🙏
+
+- A la comunidad de Django por el increíble framework
+- A todos los contribuyentes que han ayudado a dar forma a este proyecto
+- Un agradecimiento especial al equipo de Integración DEI por su continuo apoyo
 
 ---
 
-¡Gracias por tu interés en contribuir al proyecto! 🙌
+© 2025 Equipo de Desarrollo KEP. Todos los derechos reservados.
