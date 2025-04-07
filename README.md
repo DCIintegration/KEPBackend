@@ -216,9 +216,6 @@ Para despliegue en producción:
 4. Empujar a la rama (`git push origin feature/caracteristica-asombrosa`)
 5. Abrir una Solicitud de Extracción
 
-## Licencia
-
-Este proyecto está licenciado bajo la Licencia MIT - consulta el archivo LICENSE para más detalles.
 ---
 
 © 2025 Equipo de Desarrollo KEP. Todos los derechos reservados.
