@@ -2,9 +2,18 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path("main_dashboard/", views.mainDashboard, name="main_dashboard"),
-    path("create_KPI/", views.create_KPI, name="create_kpi"),
-    path("update_kpi/<int:kpi_id>/", views.update_KPI, name="update_kpi"),
-    path("delete_kpi/<int:kpi_id>", views.delete_KPI, name="delete_kpi"),
-    path("kpi_details/<int:kpi_id>/", views.view_KPI_details, name="kpi_details")
+    # Dashboard principal
+    path('', views.mainDashboard, name='main_dashboard'),
+    
+    # Gestión de KPIs
+    path('kpi/create/', views.create_KPI, name='create_kpi'),
+    path('kpi/<int:kpi_id>/update/', views.update_KPI, name='update_kpi'),
+    path('kpi/<int:kpi_id>/delete/', views.delete_KPI, name='delete_kpi'),
+    path('kpi/<int:kpi_id>/', views.view_KPI_details, name='view_kpi_details'),
+    
+    # Gestión de metas de KPIs
+    path('kpi/goals/', views.view_KPI_goal, name='view_kpi_goals'),
+    path('kpi/goals/<int:kpi_goal_id>/edit/', views.edit_KPI_goal, name='edit_kpi_goal'),
+    path('kpi/goals/<int:kpi_goal_id>/delete/', views.delete_KPI_goal, name='delete_kpi_goal'),
+    path('kpi/goals/create/', views.create_KPI_target, name='create_kpi_target'),
 ]

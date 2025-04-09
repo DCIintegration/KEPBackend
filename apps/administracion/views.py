@@ -1,71 +1,120 @@
-import json
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
 from apps.custom_auth.models import Departamento, Empleado
+from .serializers import DepartamentoSerializer, EmpleadoResumidoSerializer, EmpleadoUpdateSerializer
 
-@login_required(login_url="custom_auth/login/")
+def is_admin_or_superuser(user):
+    """
+    Función auxiliar para verificar si un usuario es administrador o superusuario.
+    """
+    return user.is_admin() or user.is_custom_superuser() or user.is_superuser
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def dashboard_administrativo(request):
-    if request.user.is_admin() or request.user.is_custom_superuser() or request.user.is_superuser:
-        departamentos = list(Departamento.objects.values("id", "nombre", "nomina_mensual"))
-        return JsonResponse({"departamentos": departamentos})
-    return JsonResponse({"error": "No tienes permiso para ver esta información"}, status=403)
+    """
+    Vista principal del dashboard administrativo.
+    Retorna la lista de departamentos.
+    """
+    if not is_admin_or_superuser(request.user):
+        return Response(
+            {"error": "No tienes permiso para ver esta información"}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
 
-@login_required(login_url="custom_auth/login/")
+    departamentos = Departamento.objects.all()
+    serializer = DepartamentoSerializer(departamentos, many=True)
+    
+    return Response({"departamentos": serializer.data})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def departamento_detalles(request, departamento_id):
-    if request.user.is_admin() or request.user.is_custom_superuser() or request.user.is_superuser:
-        departamento = get_object_or_404(Departamento, id=departamento_id)
-        empleados = list(departamento.empleados_departamento().values("id", "nombre", "puesto", "sueldo"))
-        return JsonResponse({
-            "id": departamento.id,
-            "nombre": departamento.nombre,
-            "nomina_mensual": departamento.nomina_mensual,
-            "empleados": empleados
-        })
-    return JsonResponse({"error": "No tienes permiso para ver esta información"}, status=403)
+    """
+    Retorna detalles de un departamento específico y sus empleados.
+    """
+    if not is_admin_or_superuser(request.user):
+        return Response(
+            {"error": "No tienes permiso para ver esta información"}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    departamento = get_object_or_404(Departamento, id=departamento_id)
+    
+    # Obtener y serializar empleados del departamento
 
-@login_required(login_url="custom_auth/login/")
+    empleados = departamento.empleados_departamento()
+    empleados_serializer = EmpleadoResumidoSerializer(empleados, many=True)
+    
+    # Construir respuesta con detalles del departamento y empleados
+    response_data = {
+        "id": departamento.id,
+        "nombre": departamento.nombre,
+        "nomina_mensual": departamento.nomina_mensual,
+        "empleados": empleados_serializer.data
+    }
+    
+    return Response(response_data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def empleado_detalles(request, empleado_id):
-    if request.user.is_admin() or request.user.is_custom_superuser() or request.user.is_superuser:
-        empleado = get_object_or_404(Empleado, id=empleado_id)
-        return JsonResponse({
-            "id": empleado.id,
-            "nombre": empleado.nombre,
-            "rol": empleado.role,
-            "puesto": empleado.puesto,
-            "fecha_contratacion": empleado.fecha_contratacion,
-            "activo": empleado.activo,
-            "sueldo": empleado.sueldo,
-            "departamento": empleado.departamento.nombre if empleado.departamento else None,
-            "email": empleado.email,
-            "imagen_perfil": empleado.profile_picture.url if empleado.profile_picture else None,
-            "facturable": empleado.facturable
-        })
-    return JsonResponse({"error": "No tienes permiso para ver esta información"}, status=403)
+    """
+    Retorna detalles completos de un empleado específico.
+    """
+    if not is_admin_or_superuser(request.user):
+        return Response(
+            {"error": "No tienes permiso para ver esta información"}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    empleado = get_object_or_404(Empleado, id=empleado_id)
+    
+    # Crear respuesta con detalles del empleado
+    response_data = {
+        "id": empleado.id,
+        "nombre": empleado.nombre,
+        "rol": empleado.role,
+        "puesto": empleado.puesto,
+        "fecha_contratacion": empleado.fecha_contratacion,
+        "activo": empleado.activo,
+        "sueldo": empleado.sueldo,
+        "departamento": empleado.departamento.nombre if empleado.departamento else None,
+        "email": empleado.email,
+        "imagen_perfil": empleado.profile_picture.url if empleado.profile_picture else None,
+        "facturable": empleado.facturable
+    }
+    
+    return Response(response_data)
 
-@login_required(login_url="custom_auth/login/")
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def modificar_datos(request, empleado_id):
-    if request.user.is_admin() or request.user.is_custom_superuser() or request.user.is_superuser:
-       if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            empleado = get_object_or_404(Empleado, id=empleado_id)
+    """
+    Actualiza los datos de un empleado específico.
+    """
+    if not is_admin_or_superuser(request.user):
+        return Response(
+            {"error": "No tienes permiso para modificar esta información"}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    empleado = get_object_or_404(Empleado, id=empleado_id)
+    
 
-            empleado.nombre = data.get("nombre", empleado.nombre)
-            empleado.role = data.get("role", empleado.role)
-            empleado.puesto = data.get("puesto", empleado.puesto)
-            empleado.fecha_contratacion = data.get("fecha_contratacion", empleado.fecha_contratacion)
-            empleado.activo = data.get("activo", empleado.activo)
-            empleado.sueldo = data.get("sueldo", empleado.sueldo)
-            empleado.facturable = data.get("facturable", empleado.facturable)
-
-            if "departamento" in data:
-                empleado.departamento = get_object_or_404(Departamento, id=data["departamento"]) if data["departamento"] else None
-
-            empleado.save()
-            return JsonResponse({"message": f"Usuario {empleado.nombre} actualizado correctamente"})
-
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=400)
-
-    return JsonResponse({"error": "Método no permitido"}, status=405)
+    serializer = EmpleadoUpdateSerializer(empleado, data=request.data, partial=True)
+    
+    if serializer.is_valid():
+        serializer.save()
+        return Response(
+            {"message": f"Usuario {empleado.nombre} actualizado correctamente"}
+        )
+    
+    return Response(
+        {"error": serializer.errors}, 
+        status=status.HTTP_400_BAD_REQUEST
+    )
