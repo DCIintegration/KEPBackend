@@ -2,7 +2,6 @@ from datetime import datetime
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils.translation import gettext_lazy as _
-import uuid
 
 class Departamento(models.Model):
     nombre = models.CharField(max_length=30)
@@ -15,13 +14,17 @@ class Departamento(models.Model):
         return self.empleado_set.count()
 
     def save(self, *args, **kwargs):
-        self.nomina_mensual = self.calcular_nomina()
+        if self.pk:
+            self.nomina_mensual = self.calcular_nomina()
         super().save(*args, **kwargs)
+
 
     def __str__(self):
         return self.nombre
 
-class Empleado(AbstractUser):
+
+#Separar usuarios de empleados
+class Empleado(models.Model):
     class Roles(models.TextChoices):
         PROYECTOS = 'proyectos', 'Proyectos'
         INGENIERIA = 'ingenieria', 'Ingeniería'
@@ -36,14 +39,10 @@ class Empleado(AbstractUser):
     activo = models.BooleanField(default=True)
     sueldo = models.PositiveIntegerField(default=0)
     departamento = models.ForeignKey('Departamento', on_delete=models.SET_NULL, null=True, blank=True)
-    email = models.EmailField(unique=True)
-    is_email_verified = models.BooleanField(default=True)
-    verification_token = models.UUIDField(default=uuid.uuid4, editable=False)
     profile_picture = models.ImageField(upload_to='profile_pics/', blank=True)
     facturable = models.BooleanField(default=False)
 
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['nombre', 'puesto', 'role', "username"]
+    
 
     def __str__(self):
         return self.nombre  # Muestra nombre en lugar de first_name/last_name
@@ -59,3 +58,13 @@ class Empleado(AbstractUser):
 
     def is_proyectos(self):
         return self.role == self.Roles.PROYECTOS
+    
+class CustomUser(AbstractUser):
+    email = models.EmailField(unique=True)
+    info = models.OneToOneField(Empleado, on_delete=models.CASCADE, null=True, blank=True)
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']  # Solo incluye campos que están en este modelo
+
+    def __str__(self):
+        return self.email
