@@ -71,21 +71,46 @@ class Kpi(models.Model):
         ('LM', 'Labor Multiplier (LM)'),
         ('LMM', 'Labor Maximum Multiplier (LMM)'),
     ]
-
-    def save(self, *args, **kwargs):
-        if not self.pk or 'data' in kwargs.get('update_fields', []):
-            self.calculate_value()
-        super().save(*args, **kwargs)
     
     code = models.CharField(max_length=10, choices=KPI_CHOICES, unique=True)
-    name = models.CharField(max_length=200)
+    
     description = models.TextField(blank=True)
     data = models.ForeignKey(KpiInputData, on_delete=models.CASCADE, default=None)
     value = models.FloatField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
+    def calculate_value(self):
+        """
+        Calcula el valor del KPI basado en su código y los datos de entrada.
+        """
+        try:
+            if hasattr(self, 'data') and self.data and self.code:
+                calculator = KPI_Calculator()
+                self.value = calculator.calculate_KPI(self.code, self.data)
+        except Exception as e:
+            # Manejo de errores de cálculo
+            print(f"Error al calcular KPI {self.code}: {str(e)}")
+            self.value = None
+    
+    def save(self, *args, **kwargs):
+        # Verificar si es un objeto nuevo
+        is_new = not self.pk
+        
+        if is_new:
+            # Para objetos nuevos, primero guardar para obtener un ID
+            super().save(*args, **kwargs)
+            # Luego calcular el valor
+            self.calculate_value()
+            # Guardar nuevamente con el valor calculado
+            super().save(update_fields=['value'])
+        else:
+            # Para actualizaciones, calcular primero y luego guardar
+            if 'data' in kwargs.get('update_fields', []):
+                self.calculate_value()
+            super().save(*args, **kwargs)
+    
     def __str__(self):
-        return f"{self.get_code_display()} - {self.name}"
+        return f"{self.get_code_display()} "
 
 
 class KpiTarget(models.Model):

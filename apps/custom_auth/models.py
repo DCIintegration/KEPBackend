@@ -8,15 +8,22 @@ class Departamento(models.Model):
     nombre = models.CharField(max_length=30)
     nomina_mensual = models.PositiveIntegerField(null=True, blank=True)
 
+    def save(self, *args, **kwargs):
+        # Solo calcular la nómina si el departamento ya existe (tiene ID)
+        if self.pk:
+            self.nomina_mensual = self.calcular_nomina()
+        super().save(*args, **kwargs)
+        
+        # Si es una creación nueva, actualizar la nómina después de guardar
+        if not self.pk:
+            self.nomina_mensual = self.calcular_nomina()
+            super().save(*args, **kwargs)
+
     def calcular_nomina(self):
         return sum(empleado.sueldo for empleado in self.empleado_set.all())
     
     def empleados_departamento(self):
         return self.empleado_set.count()
-
-    def save(self, *args, **kwargs):
-        self.nomina_mensual = self.calcular_nomina()
-        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.nombre
