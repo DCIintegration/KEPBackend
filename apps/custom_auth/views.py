@@ -155,3 +155,15 @@ def login_view(request):
         {"error": serializer.errors}, 
         status=status.HTTP_400_BAD_REQUEST
     )
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def logout(request):
+    """
+    Cierra la sesión del usuario autenticado.
+    """
+    if request.user.is_authenticated:
+        logout(request)
+        return Response({"message": "Sesión cerrada correctamente"}, status=status.HTTP_200_OK)
+    
+    return Response({"error": "No hay sesión activa"}, status=status.HTTP_400_BAD_REQUEST)
