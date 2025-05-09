@@ -78,4 +78,5 @@ Horas_por_OT.xlsx
 output.csv
 
 # Instance specific
-/KEP/settings_local.py
+/KEP/settings_local.py*.pyc
+__pycache__/
