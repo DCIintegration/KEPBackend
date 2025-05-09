@@ -1,253 +1,152 @@
-from rest_framework import status
+from rest_framework import status, generics
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from django.contrib.auth import authenticate, login, logout
-from apps.custom_auth.models import Empleado
-from .serializers import EmpleadoSerializer, EmpleadoUpdateSerializer, LoginSerializer
-from rest_framework_simplejwt.views import TokenObtainPairView
+from django.contrib.auth import authenticate
+from apps.custom_auth.models import Empleado, Departamento
+from .serializers import EmpleadoSerializer, EmpleadoRegisterSerializer, CustomTokenObtainPairSerializer, LoginSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
-@api_view(["POST"])
-@permission_classes([AllowAny])
-def login_view(request):
+
+class UserRegistrationView(generics.CreateAPIView):
     """
-    Autentica a un usuario y devuelve tokens de acceso y refresco.
+    Vista para el registro de empleados.
     """
-    serializer = LoginSerializer(data=request.data)
+    serializer_class = EmpleadoRegisterSerializer
+    permission_classes = [IsAdminUser]
     
-    if serializer.is_valid():
-        email = serializer.validated_data['email']
-        password = serializer.validated_data['password']
-        
-        user = authenticate(request, username=email, password=password)
-        
-        if user is not None:
-            if not user.activo:
-                return Response(
-                    {"error": "Tu cuenta está desactivada"}, 
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            
-            if not user.is_email_verified:
-                return Response(
-                    {"error": "Debes verificar tu correo"}, 
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            
-            # Generar tokens JWT
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
             refresh = RefreshToken.for_user(user)
-            
             return Response({
-                "message": "Inicio de sesión exitoso",
-                "user": {
-                    "nombre": user.nombre,
-                    "role": user.role,
-                    "email": user.email
-                },
-                "access": str(refresh.access_token),
-                "refresh": str(refresh)
-            }, status=status.HTTP_200_OK)
-        
-        return Response(
-            {"error": "Credenciales incorrectas"}, 
-            status=status.HTTP_401_UNAUTHORIZED
-        )
-    
-    return Response(
-        {"error": serializer.errors}, 
-        status=status.HTTP_400_BAD_REQUEST
-    )
+                'status': 'success',
+                'message': 'Empleado creado exitosamente',
+                'user': serializer.data,
+                'tokens': {
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                }
+            }, status=status.HTTP_201_CREATED)
+        return Response({
+            'status': 'error',
+            'message': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(["POST"])
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def logout_view(request):
+def getUserProfile(request):
     """
-    Invalida el token de refresco del usuario (Logout).
+    Retorna el perfil del usuario autenticado.
     """
-    try:
-        refresh_token = request.data.get("refresh")
-        if refresh_token is None:
-            return Response({"error": "Se requiere token de refresco"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        token = RefreshToken(refresh_token)
-        token.blacklist()  # Requiere configuración del Blacklist app
-        return Response({"message": "Sesión cerrada correctamente"}, status=status.HTTP_200_OK)
-    
-    except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    serializer = EmpleadoSerializer(request.user)
+    return Response(serializer.data)
 
-
-@api_view(['POST'])
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def create_user(request):
+def getUser(request, custom_user_id):
     """
-    Crea un nuevo usuario (empleado).
-    Solo disponible para superusuarios.
+    Retorna un usuario específico si el solicitante es superusuario o administrador.
     """
-    if not request.user.is_superuser:
-        return Response(
-            {"error": "No tienes permisos para crear usuarios"}, 
-            status=status.HTTP_403_FORBIDDEN
-        )
+    if not (request.user.is_superuser or request.user.role == 'administracion'):
+        return Response({
+            'status': 'error', 
+            'message': 'No tienes permisos para ver esta información'
+        }, status=status.HTTP_403_FORBIDDEN)
     
-    serializer = EmpleadoSerializer(data=request.data)
+    user = get_object_or_404(Empleado, id=custom_user_id)
+    serializer = EmpleadoSerializer(user)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def listUsers(request):
+    """
+    Retorna la lista de todos los usuarios si el solicitante es superusuario o administrador.
+    """
+    if not (request.user.is_superuser or request.user.role == 'administracion'):
+        return Response({
+            'status': 'error', 
+            'message': 'No tienes permisos para ver esta información'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    users = Empleado.objects.all()
+    serializer = EmpleadoSerializer(users, many=True)
+    return Response(serializer.data)
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def updateUser(request, custom_user_id):
+    """
+    Actualiza un usuario específico si el solicitante es superusuario o el mismo usuario.
+    """
+    user = get_object_or_404(Empleado, id=custom_user_id)
+    
+    # Verificar permisos
+    if not (request.user.is_superuser or request.user.id == custom_user_id):
+        return Response({
+            'status': 'error', 
+            'message': 'No tienes permisos para modificar este usuario'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    serializer = EmpleadoSerializer(user, data=request.data, partial=True)
     if serializer.is_valid():
-        # Validar si el usuario ya existe
-        if Empleado.objects.filter(email=serializer.validated_data["email"]).exists():
-            return Response(
-                {"error": "El usuario ya existe"}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Crear usuario
         serializer.save()
-        return Response(
-            {"message": f"Usuario {serializer.validated_data['nombre']} creado correctamente"}, 
-            status=status.HTTP_201_CREATED
-        )
+        return Response({
+            'status': 'success',
+            'message': 'Usuario actualizado correctamente',
+            'user': serializer.data
+        })
     
-    return Response(
-        {"error": serializer.errors}, 
-        status=status.HTTP_400_BAD_REQUEST
-    )
+    return Response({
+        'status': 'error',
+        'message': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
-def delete_user(request, empleado_id):
+def deleteUser(request, custom_user_id):
     """
-    Elimina un usuario basado en su ID.
-    Solo disponible para superusuarios.
-    """
-    if not request.user.is_superuser:
-        return Response(
-            {"error": "No tienes permisos para eliminar usuarios"}, 
-            status=status.HTTP_403_FORBIDDEN
-        )
-    
-    empleado = get_object_or_404(Empleado, id=empleado_id)
-    nombre = empleado.nombre
-    empleado.delete()
-    
-    return Response(
-        {"message": f"Usuario {nombre} eliminado correctamente"},
-        status=status.HTTP_200_OK
-    )
-
-@api_view(['POST', 'PUT', 'PATCH'])
-@permission_classes([IsAuthenticated])
-def update_user(request, empleado_id):
-    """
-    Actualiza la información de un usuario.
-    Solo disponible para superusuarios.
+    Elimina un usuario si el solicitante es superusuario.
     """
     if not request.user.is_superuser:
-        return Response(
-            {"error": "No tienes permisos para actualizar usuarios"}, 
-            status=status.HTTP_403_FORBIDDEN
-        )
+        return Response({
+            'status': 'error', 
+            'message': 'No tienes permisos para eliminar usuarios'
+        }, status=status.HTTP_403_FORBIDDEN)
     
-    empleado = get_object_or_404(Empleado, id=empleado_id)
-    serializer = EmpleadoUpdateSerializer(empleado, data=request.data, partial=True)
+    user = get_object_or_404(Empleado, id=custom_user_id)
+    user.delete()
     
-    if serializer.is_valid():
-        serializer.save()
-        return Response(
-            {"message": f"Usuario {empleado.nombre} actualizado correctamente"},
-            status=status.HTTP_200_OK
-        )
-    
-    return Response(
-        {"error": serializer.errors}, 
-        status=status.HTTP_400_BAD_REQUEST
-    )
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def view_users(request):
-    """
-    Retorna la lista de todos los usuarios.
-    Solo disponible para superusuarios.
-    """
-    if not request.user.is_superuser:
-        return Response(
-            {"error": "No tienes permisos para visualizar esta información"}, 
-            status=status.HTTP_403_FORBIDDEN
-        )
-    
-    empleados = Empleado.objects.all()
-    serializer = EmpleadoSerializer(empleados, many=True)
-    
-    return Response({"Empleados": serializer.data})
+    return Response({
+        'status': 'success',
+        'message': 'Usuario eliminado correctamente'
+    })
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
-def login_view(request):
+def logoutUser(request):
     """
-    Autentica a un usuario y lo conecta al sistema.
+    Invalida el token de refresco del usuario actual (logout).
     """
-    serializer = LoginSerializer(data=request.data)
-    
-    if serializer.is_valid():
-        email = serializer.validated_data['email']
-        password = serializer.validated_data['password']
+    try:
+        refresh_token = request.data.get("refresh")  # Usar paréntesis en lugar de corchetes
         
-        user = authenticate(request, username=email, password=password)
-        
-        if user is not None:
-            if not user.activo:
-                return Response(
-                    {"error": "Tu cuenta está desactivada"}, 
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            
-            if not user.is_email_verified:
-                return Response(
-                    {"error": "Debes verificar tu correo"}, 
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            
-            login(request, user)
+        if not refresh_token:
             return Response({
-                "message": "Inicio de sesión exitoso", 
-                "user": {
-                    "nombre": user.nombre, 
-                    "role": user.role, 
-                    "email": user.email
-                }
-            })
-        
-        return Response(
-            {"error": "Credenciales incorrectas"}, 
-            status=status.HTTP_401_UNAUTHORIZED
-        )
-    
-    return Response(
-        {"error": serializer.errors}, 
-        status=status.HTTP_400_BAD_REQUEST
-    )
-
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def logout(request):
-    """
-    Cierra la sesión del usuario autenticado.
-    """
-    if request.user.is_authenticated:
-        logout(request)
-        return Response({"message": "Sesión cerrada correctamente"}, status=status.HTTP_200_OK)
-    
-    return Response({"error": "No hay sesión activa"}, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def view_user(request):
-    """
-    Retorna la información del usuario autenticado.
-    """
-    if request.user.is_authenticated:
-        serializer = EmpleadoSerializer(request.user)
-        return Response({"user": serializer.data}, status=status.HTTP_200_OK)
-    
-    return Response({"error": "No hay sesión activa"}, status=status.HTTP_400_BAD_REQUEST)
+                'status': 'error',
+                'message': 'Token de refresco no proporcionado'
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        token = RefreshToken(refresh_token)
+        token.blacklist()     
+        return Response({
+            'status': 'success',
+            'message': 'Sesión cerrada correctamente'
+        })
+    except Exception as e:
+        return Response({
+            'status': 'error',
+            'message': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
