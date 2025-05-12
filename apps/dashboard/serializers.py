@@ -19,7 +19,7 @@ class KpiSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Kpi
-        fields = ['id', 'name', 'code', 'description', 'value', 'data']
+        fields = ['id',  'code', 'description']
 
 class KpiDetailSerializer(serializers.ModelSerializer):
     """

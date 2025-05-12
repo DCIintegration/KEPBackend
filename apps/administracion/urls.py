@@ -10,5 +10,4 @@ urlpatterns = [
     
     # Detalles y modificación de empleados
     path('empleados/<int:empleado_id>/', views.empleado_detalles, name='empleado_detalles'),
-    path('empleados/<int:empleado_id>/modificar/', views.modificar_datos, name='modificar_datos'),
 ]

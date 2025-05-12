@@ -6,6 +6,7 @@ urlpatterns = [
     path('', views.mainDashboard, name='main_dashboard'),
     
     # Gestión de KPIs
+    path('kpi/', views.mainDashboard, name='view_kpis'),
     path('kpi/create/', views.create_KPI, name='create_kpi'),
     path('kpi/<int:kpi_id>/update/', views.update_KPI, name='update_kpi'),
     path('kpi/<int:kpi_id>/delete/', views.delete_KPI, name='delete_kpi'),

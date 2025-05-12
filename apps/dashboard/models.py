@@ -2,24 +2,10 @@ from django.db import models
 
 class KpiInputData(models.Model):
 
-    STATUS = [
-        ('correcto', 'Correcto'),
-        ('reportado', 'Reportado'),
-        ('corregido', 'Corregido'),
-    ]
-
     """Datos de entrada necesarios para calcular los KPIs"""
-    created_at = models.DateTimeField(auto_now_add=True)
     
-    total_horas_facturables = models.FloatField(null=True, blank=True, default=0)
     total_horas_planta = models.FloatField(null=True, blank=True, default=0)
-    total_horas_facturadas = models.FloatField(null=True, blank=True, default=0)
-    numero_empleados = models.IntegerField(null=True, blank=True, default=0) 
-    numero_empleados_facturables = models.IntegerField(null=True, blank=True, default=0)
-    dias_trabajados = models.IntegerField(null=True, blank=True, default=0)
-    costo_por_hora = models.FloatField(null=True, blank=True, default=0) 
-    ganancia_total = models.FloatField(null=True, blank=True, default=0)
-    status = models.CharField(max_length=20, choices=STATUS, default='correcto')
+
 
 class KPI_Calculator:
     @staticmethod
@@ -75,8 +61,7 @@ class Kpi(models.Model):
     code = models.CharField(max_length=10, choices=KPI_CHOICES, unique=True)
     
     description = models.TextField(blank=True)
-    data = models.ForeignKey(KpiInputData, on_delete=models.CASCADE, default=None)
-    value = models.FloatField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     
     def calculate_value(self):
