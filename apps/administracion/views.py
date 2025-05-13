@@ -91,30 +91,3 @@ def empleado_detalles(request, empleado_id):
     
     return Response(response_data)
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def modificar_datos(request, empleado_id):
-    """
-    Actualiza los datos de un empleado específico.
-    """
-    if not is_admin_or_superuser(request.user):
-        return Response(
-            {"error": "No tienes permiso para modificar esta información"}, 
-            status=status.HTTP_403_FORBIDDEN
-        )
-    
-    empleado = get_object_or_404(Empleado, id=empleado_id)
-    
-
-    serializer = EmpleadoUpdateSerializer(empleado, data=request.data, partial=True)
-    
-    if serializer.is_valid():
-        serializer.save()
-        return Response(
-            {"message": f"Usuario {empleado.nombre} actualizado correctamente"}
-        )
-    
-    return Response(
-        {"error": serializer.errors}, 
-        status=status.HTTP_400_BAD_REQUEST
-    )
