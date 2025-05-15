@@ -77,16 +77,13 @@ def empleado_detalles(request, empleado_id):
     # Crear respuesta con detalles del empleado
     response_data = {
         "id": empleado.id,
-        "nombre": empleado.nombre,
-        "rol": empleado.role,
+        "nombre completo": empleado.nombre_completo,
         "puesto": empleado.puesto,
         "fecha_contratacion": empleado.fecha_contratacion,
         "activo": empleado.activo,
         "sueldo": empleado.sueldo,
         "departamento": empleado.departamento.nombre if empleado.departamento else None,
         "email": empleado.email,
-        "imagen_perfil": empleado.profile_picture.url if empleado.profile_picture else None,
-        "facturable": empleado.facturable
     }
     
     return Response(response_data)

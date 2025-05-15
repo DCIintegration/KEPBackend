@@ -8,9 +8,7 @@ class KpiInputDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = KpiInputData
         fields = [
-            'id', 'total_horas_facturables', 'total_horas_planta', 'total_horas_facturadas',
-            'numero_empleados', 'numero_empleados_facturables', 'dias_trabajados',
-            'costo_por_hora', 'ganancia_total', 'status'
+            'id','total_horas_planta'
         ]
 
 class KpiSerializer(serializers.ModelSerializer):

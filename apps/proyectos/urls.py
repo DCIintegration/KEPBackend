@@ -7,6 +7,9 @@ urlpatterns = [
     path('logs/<int:KpiInputData_id>/', views.view_log_details, name='view_log_details'),
     path('logs/<int:KpiInputData_id>/report/', views.report_log, name='report_log'),
     path('logs/<int:KpiInputData_id>/modify/', views.modify_log, name='modify_log'),
-    path('logs/upload/excel/', views.upload_excel_log, name='upload_excel_log'),
     path('logs/upload/manual/', views.upload_manual_log, name='upload_manual_log'),
+    path('proyectos/', views.ProyectoListCreateView.as_view(), name='proyecto-list-create'),
+    path('proyectos/<int:pk>/', views.ProyectoRetrieveUpdateDestroyView.as_view(), name='proyecto-detail'),
+    path('asignaciones/', views.AsignacionProyectoListCreateView.as_view(), name='asignacion-list-create'),
+    path('asignaciones/<int:pk>/', views.AsignacionProyectoRetrieveUpdateDestroyView.as_view(), name='asignacion-detail'),
 ]
