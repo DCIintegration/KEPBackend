@@ -95,3 +95,12 @@ class LoginSerializer(serializers.Serializer):
         if not data.get('email') or not data.get('password'):
             raise serializers.ValidationError("Email y contraseña son obligatorios")
         return data
+
+# ──────────────── DEPARTAMENTO ──────────────── #
+
+class DepartamentoSerializer(serializers.Serializer):
+    nombre = serializers.CharField(required=True)
+    nomina_mensual = serializers.IntegerField(required=True)
+
+    def calcular_nomina(self):
+        pass

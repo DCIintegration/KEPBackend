@@ -17,4 +17,8 @@ urlpatterns = [
     path('kpi/goals/<int:kpi_goal_id>/edit/', views.edit_KPI_goal, name='edit_kpi_goal'),
     path('kpi/goals/<int:kpi_goal_id>/delete/', views.delete_KPI_goal, name='delete_kpi_goal'),
     path('kpi/goals/create/', views.create_KPI_target, name='create_kpi_target'),
+
+    # Rutas para calculo de KPI
+    path('kpi/<str:kpi_name>/', views.calcular_kpi, name='calcular_kpi'),
+
 ]

@@ -19,17 +19,6 @@ class KpiSerializer(serializers.ModelSerializer):
         model = Kpi
         fields = ['id',  'code', 'description']
 
-class KpiDetailSerializer(serializers.ModelSerializer):
-    """
-    Serializer detallado para el modelo Kpi.
-    Usado para mostrar información completa de un KPI.
-    """
-    data_details = KpiInputDataSerializer(source='data', read_only=True)
-    
-    class Meta:
-        model = Kpi
-        fields = ['id', 'name', 'code', 'description', 'value', 'data', 'data_details', 'created_at']
-        # Se incluye la información de los datos de entrada del KPI
 
 class KpiTargetSerializer(serializers.ModelSerializer):
     """
@@ -69,18 +58,3 @@ class KpiTargetSerializer(serializers.ModelSerializer):
         
         return data
 
-class KpiWithTargetsSerializer(serializers.ModelSerializer):
-    """
-    Serializer para mostrar un KPI con sus targets asociados.
-    """
-    targets = serializers.SerializerMethodField()
-    data_details = KpiInputDataSerializer(source='data', read_only=True)
-    
-    class Meta:
-        model = Kpi
-        fields = ['id', 'name', 'code', 'description', 'value', 'data', 'data_details', 'targets']
-    
-    def get_targets(self, obj):
-        """Retorna todos los targets asociados al KPI."""
-        targets = KpiTarget.objects.filter(kpi=obj)
-        return KpiTargetSerializer(targets, many=True).data

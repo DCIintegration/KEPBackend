@@ -1,3 +1,16 @@
+from dataclasses import dataclass
+
+@dataclass
+class KPIData:
+    total_horas_facturables: float
+    total_horas_facturadas: float
+    costo_por_hora: float
+    ganancia_total: float
+    numero_empleados: int
+    numero_empleados_facturables: int
+    dias_trabajados: int
+
+
 class KPI_Calculator:
     @staticmethod
     def ELDR(kpi_data):

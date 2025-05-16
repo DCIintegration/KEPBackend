@@ -24,6 +24,11 @@ class Empleado(models.Model):
 
 
 class CustomUser(AbstractUser):
+
+    ROLES = [
+
+    ]
+    
     email = models.EmailField(unique=True)  
     username = models.CharField(max_length=30, unique=False, null=True, blank=True)
 

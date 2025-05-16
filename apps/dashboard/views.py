@@ -4,13 +4,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from apps.dashboard.models import Kpi, KpiTarget
-from .serializers import KpiSerializer, KpiDetailSerializer, KpiTargetSerializer
+from .serializers import KpiSerializer, KpiTargetSerializer
+from apps.custom_auth.models import Empleado
+from .utils import KPI_Calculator, KPIData
+from apps.custom_auth.utils import FinantialInformation
 
-def is_admin_or_superuser(user):
-    """
-    Función auxiliar para verificar si un usuario es administrador o superusuario.
-    """
-    return user.is_superuser or user.is_admin()
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -29,11 +27,6 @@ def create_KPI(request):
     Vista disponible solo para el superusuario.
     Crea un nuevo KPI.
     """
-    if not request.user.is_superuser:
-        return Response(
-            {"error": "No tienes permisos para crear un KPI"}, 
-            status=status.HTTP_403_FORBIDDEN
-        )
     
     serializer = KpiSerializer(data=request.data)
     if serializer.is_valid():
@@ -63,11 +56,6 @@ def update_KPI(request, kpi_id):
     Vista disponible para el superusuario y administración.
     Actualiza un KPI existente.
     """
-    if not is_admin_or_superuser(request.user):
-        return Response(
-            {"error": "No tienes permisos para actualizar un KPI"}, 
-            status=status.HTTP_403_FORBIDDEN
-        )
     
     kpi = get_object_or_404(Kpi, id=kpi_id)
     serializer = KpiSerializer(kpi, data=request.data, partial=True)
@@ -90,12 +78,7 @@ def delete_KPI(request, kpi_id):
     Vista disponible solo para el superusuario.
     Elimina un KPI existente.
     """
-    if not request.user.is_superuser:
-        return Response(
-            {"error": "No tienes permisos para eliminar un KPI"}, 
-            status=status.HTTP_403_FORBIDDEN
-        )
-    
+
     kpi = get_object_or_404(Kpi, id=kpi_id)
     nombre = kpi.name
     kpi.delete()
@@ -111,7 +94,7 @@ def view_KPI_details(request, kpi_id):
     Vista disponible para todos los usuarios, muestra detalles de un KPI.
     """
     kpi = get_object_or_404(Kpi, id=kpi_id)
-    serializer = KpiDetailSerializer(kpi)
+    serializer = KpiSerializer(kpi)
     return Response(serializer.data)
 
 @api_view(['GET'])
@@ -131,11 +114,6 @@ def edit_KPI_goal(request, kpi_goal_id):
     Edita una meta de KPI existente.
     Solo disponible para administradores y superusuarios.
     """
-    if not is_admin_or_superuser(request.user):
-        return Response(
-            {"error": "No tienes permisos para actualizar un KPI Goal"}, 
-            status=status.HTTP_403_FORBIDDEN
-        )
     
     kpi_goal = get_object_or_404(KpiTarget, id=kpi_goal_id)
     serializer = KpiTargetSerializer(kpi_goal, data=request.data, partial=True)
@@ -158,11 +136,6 @@ def delete_KPI_goal(request, kpi_goal_id):
     Elimina una meta de KPI.
     Solo disponible para superusuarios.
     """
-    if not request.user.is_superuser:
-        return Response(
-            {"error": "No tienes permisos para eliminar un KPI Goal"}, 
-            status=status.HTTP_403_FORBIDDEN
-        )
     
     kpi_goal = get_object_or_404(KpiTarget, id=kpi_goal_id)
     goal_id = kpi_goal.id
@@ -179,11 +152,6 @@ def create_KPI_target(request):
     Crea una nueva meta para un KPI.
     Solo disponible para superusuarios.
     """
-    if not request.user.is_superuser:
-        return Response(
-            {"error": "No tienes permisos para crear un KPI Target"}, 
-            status=status.HTTP_403_FORBIDDEN
-        )
     
     serializer = KpiTargetSerializer(data=request.data)
     if serializer.is_valid():
@@ -208,3 +176,25 @@ def create_KPI_target(request):
         {"error": serializer.errors}, 
         status=status.HTTP_400_BAD_REQUEST
     )
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def calcular_kpi(request, kpi_name):
+    empleados = Empleado.objects.all()
+    empleados_facturables = FinantialInformation.empleados_facturables()
+
+    kpi_data = KPIData(
+        total_horas_facturables = empleados_facturables * 8.5 * 22,  
+        total_horas_facturadas = empleados_facturables * 7.5 * 22,  
+        costo_por_hora = 250,  # puedes parametrizar esto si lo deseas
+        ganancia_total = 300000,  # ejemplo
+        numero_empleados = empleados.count(),
+        numero_empleados_facturables = empleados_facturables,
+        dias_trabajados = 22
+    )
+
+    try:
+        resultado = KPI_Calculator().calculate_KPI(kpi_name.upper(), kpi_data)
+        return Response({kpi_name.upper(): resultado})
+    except ValueError as e:
+        return Response({"error": str(e)}, status=400)

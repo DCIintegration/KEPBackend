@@ -6,7 +6,7 @@ class FinantialData(models.Model):
     # Campos del modelo
     total_horas_facturadas = models.FloatField(null=True, blank=True, default=0)
     ganancia_total = models.FloatField(null=True, blank=True, default=0)
-    month = models.CharField(max_length=20, null=True, blank=True, choices=[
+    month = models.CharField(max_length=12, null=True, blank=True, choices=[
         ('Enero', 'Enero'),
         ('Febrero', 'Febrero'),
         ('Marzo', 'Marzo'),

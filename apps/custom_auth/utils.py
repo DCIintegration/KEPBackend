@@ -11,13 +11,15 @@ class FinantialInformation:
 
     def empleados_facturables(Empleado):
         """
-        Filtra y retorna una lista de empleados facturables.
+        Retorna la cantidad de empleados que son facturables,
+        es decir, aquellos que pertenecen a Diseño o Ingeniería.
         """
         count = 0
         for empleado in Empleado:
-            if empleado.facturable:
+            if empleado.departamento and empleado.departamento.nombre.lower() in ['diseño', 'ingenieria']:
                 count += 1
         return count
+
     
     def horas_facturables(Empleado):
         """
