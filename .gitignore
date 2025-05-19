@@ -80,3 +80,9 @@ output.csv
 # Instance specific
 /KEP/settings_local.py*.pyc
 __pycache__/
+
+#Resources and sensitive data
+/Resources
+
+#Data cleaner
+csv_cleaner.py

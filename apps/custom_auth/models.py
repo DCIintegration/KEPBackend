@@ -25,12 +25,16 @@ class Empleado(models.Model):
 
 class CustomUser(AbstractUser):
 
-    ROLES = [
-
-    ]
+    ROLES = (
+        ('admin', 'Admin'),
+        ('sistemas', 'Sistemas'),
+        ('proyectos', 'Proyectos'),
+        ('espctador', 'Espectador'),
+    )
     
     email = models.EmailField(unique=True)  
     username = models.CharField(max_length=30, unique=False, null=True, blank=True)
+    role = models.CharField(max_length=50, choices=ROLES, default="espectador")
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = [] 

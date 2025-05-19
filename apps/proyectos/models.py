@@ -47,4 +47,22 @@ class AsignacionProyecto(models.Model):
     costo_hora = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     tarifa_hora = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
 
+class RegistroHoras(models.Model):
+
+    fecha= models.DateField()
+    asignacion = models.CharField(max_length=100)
+    descripcion = models.TextField(max_length=200)
+    horas_trabajadas= models.IntegerField()
+    empleado = models.CharField(max_length=100)
+    grupo_empleados = models.CharField(max_length=100)
+    proyecto = models.CharField(max_length=100)
+    cliente = models.CharField(max_length=100)
+    status_proyecto = models.BooleanField()
+    ot = models.CharField(max_length=100)
+    planta = models.CharField(max_length=100)
+
+
+    def __str__(self):
+        return self.ot
+
 
