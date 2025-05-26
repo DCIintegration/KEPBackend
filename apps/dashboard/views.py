@@ -186,8 +186,8 @@ def calcular_kpi(request, kpi_name):
     kpi_data = KPIData(
         total_horas_facturables = empleados_facturables * 8.5 * 22,  
         total_horas_facturadas = empleados_facturables * 7.5 * 22,  
-        costo_por_hora = 250,  # puedes parametrizar esto si lo deseas
-        ganancia_total = 300000,  # ejemplo
+        costo_por_hora = 250, 
+        ganancia_total = 300000, 
         numero_empleados = empleados.count(),
         numero_empleados_facturables = empleados_facturables,
         dias_trabajados = 22
