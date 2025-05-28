@@ -7,6 +7,12 @@ from apps.dashboard.models import KpiInputData
 from .models import Proyecto, AsignacionProyecto
 from .serializers import ProyectoSerializer, AsignacionProyectoSerializer
 from apps.dashboard.serializers import KpiInputDataSerializer
+from rest_framework.decorators import api_view, parser_classes
+from rest_framework.parsers import MultiPartParser
+from rest_framework.response import Response
+import pandas as pd
+import io
+from .tosql import LoadData
 
 def has_proyectos_permission(user):
     """
@@ -158,3 +164,21 @@ def upload_manual_log(request):
         {"error": serializer.errors}, 
         status=status.HTTP_400_BAD_REQUEST
     )
+
+
+@api_view(['POST'])
+@parser_classes([MultiPartParser])
+def upload_csv(request):
+    file = request.FILES.get('file')
+
+    if not file:
+        return Response({"error": "No se envió ningún archivo"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not file.name.endswith('.csv'):
+        return Response({"error": "El archivo debe ser un CSV"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        LoadData.load_csv(file)
+        return Response({"message": "Archivo procesado correctamente"}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": f"Ocurrió un error al procesar el archivo: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -1,47 +1,49 @@
-import os 
+import os
 import django
+import threading
+import pandas as pd
+from django.db.models import Max
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'KEP.settings') 
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'KEP.settings')
 django.setup()
-import csv
-from .models import RegistroHoras
 
-def cargar_datos_desde_csv(file_path):
-    with open(file_path, mode='r') as file:
-        reader = csv.DictReader(file)
-        
-        for row in reader:
+from apps.proyectos.models import RegistroHoras
+
+class LoadData():
+
+    def load_csv(file_path):
+        ultima_fecha = RegistroHoras.objects.aggregate(Max('fecha'))['fecha__max']
+        df = pd.read_csv(file_path, encoding='utf-16')
+        df['Date'] = pd.to_datetime(df["Date"], format='%m/%d/%Y')
+        df = df.sort_values(by="Date")
+        df[['OT', 'Planta']] = df['Project'].str.extract(r'((?:OT\d{2}-\d{1}-\d{3,5}|DCI-\d{2}))\s*[-–]?\s*(.*)')
+        df.drop(columns=['Project'], inplace=True)
+        df= df[df['Time Entry Status']== 'Submitted']
+        df = df[df['Date'] > ultima_fecha]
+
+        for _, row in df.iterrows():
             try:
-         
-                registro = RegistroHoras(
+                obj, created = RegistroHoras.objects.update_or_create(
                     date=row['Date'],
-                    time_entry_status=row['Time Entry Status'],
-                    task=row['Task'],
-                    hours_worked=float(row['Hours Worked']),  # Asegúrate de que sea un entero
                     employee=row['Employee'],
-                    employee_group=row['Employee Group'],
-                    manager=row['Manager'],
-                    project_status = row['Project Status (Count)'] == 'Active',
-                    ot=row['OT'],
-                    planta=row['Planta']
+                    task=row['Task'],
+                    defaults={
+                        'time_entry_status': row['Time Entry Status'],
+                        'hours_worked': float(row['Hours Worked']),
+                        'employee_group': row['Employee Group'],
+                        'manager': row['Manager'],
+                        'project_status': row['Project Status (Count)'] == 'Active',
+                        'ot': row['OT'],
+                        'planta': row['Planta']
+                    }
                 )
-                
-                # Guardar el objeto en la base de datos
-                registro.save()
-            
             except Exception as e:
-                # Manejo de errores para cada fila
-                print(f"Error al cargar la fila {row}: {e}")
+                print(f"Error al cargar la fila {row.to_dict()}: {e}")
                 continue
 
-"""
-Si se sube un csv de datos que ya existem, se tiene que ignorar siempre y cuando sean iguales, de lo contrario se deben de actualizar los datos
-"""
-
 def main():
-
     file_path = 'apps/proyectos/DemoHoras.csv'  # Cambia esto al path de tu archivo CSV
-    cargar_datos_desde_csv(file_path)
+    LoadData.cargar_datos_desde_csv(file_path)
     print("Datos cargados exitosamente.")
 
 if __name__ == "__main__":
