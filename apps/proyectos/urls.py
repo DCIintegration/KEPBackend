@@ -12,4 +12,5 @@ urlpatterns = [
     path('proyectos/<int:pk>/', views.ProyectoRetrieveUpdateDestroyView.as_view(), name='proyecto-detail'),
     path('asignaciones/', views.AsignacionProyectoListCreateView.as_view(), name='asignacion-list-create'),
     path('asignaciones/<int:pk>/', views.AsignacionProyectoRetrieveUpdateDestroyView.as_view(), name='asignacion-detail'),
+    path("registro_horas/upload/", views.upload_csv, name="upload_registro_horas"),
 ]

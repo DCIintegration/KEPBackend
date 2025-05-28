@@ -10,9 +10,7 @@ from apps.dashboard.serializers import KpiInputDataSerializer
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
-import pandas as pd
-import io
-from .tosql import LoadData
+from .utils import LoadData
 
 def has_proyectos_permission(user):
     """
@@ -168,6 +166,7 @@ def upload_manual_log(request):
 
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
+@permission_classes([IsAuthenticated])
 def upload_csv(request):
     file = request.FILES.get('file')
 

@@ -25,4 +25,31 @@ class FinantialData(models.Model):
     class Meta:
         unique_together = ('month', 'year')
 
+class IngresoActividad(models.Model):
+    """Modelo para almacenar ingresos de actividades"""
+
+    ACTS= [
+        ('Envio', 'Envio'),
+        ('Equipo', 'Equipo'),
+        ('Ingenieria de Control', 'Ingenieria de Control'),
+        ('PLC', 'OLC'),
+        ('Reparacion Servidores', 'Reparacion Servidores'),
+        ('Servicio Electrico', 'Servicio Electrico'),
+        ('Servicio Redes', 'Servicio Redes'),
+        ('Software (Licencias)', 'Software (Licencias)'),
+        ('Tableros', 'Tableros'),
+        ('Viaticos', 'Viaticos'),
+        
+        
+    ]
+
+    actividad = models.CharField(choices=ACTS, max_length=100)
+    monto = models.FloatField()
+    fecha = models.DateField()
+
+    def __str__(self):
+        return f"{self.actividad} - {self.monto} - {self.fecha}"
+    
+    class Meta:
+        verbose_name_plural = "Ingresos de Actividades"
 

@@ -2,8 +2,10 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .models import FinantialData
+from .models import FinantialData, IngresoActividad
+from apps.administracion.serializers import  IngresoActividadSerializer
 from .serializers import FinantialDataSerializer
+from rest_framework import status, generics
 
 """-------- ENDPOINTS PARA INFORMACIÓN FINANCIERA ----------"""
 
@@ -39,3 +41,14 @@ def viewFinantialHistory(request):
     data = FinantialData.objects.all().order_by('-year', '-month')
     serializer = FinantialDataSerializer(data, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+class IngresoActividadListCreateView(generics.ListCreateAPIView):
+    queryset = IngresoActividad.objects.all()
+    serializer_class = IngresoActividadSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class IngresoActividadRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = IngresoActividad.objects.all()
+    serializer_class = IngresoActividadSerializer
+    permission_classes = [IsAuthenticated]
