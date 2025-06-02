@@ -34,3 +34,11 @@ class ProyectoSerializer(serializers.ModelSerializer):
             'id', 'nombre', 'descripcion', 'fecha_inicio', 'fecha_fin_estimada',
             'fecha_fin_real', 'estado', 'presupuesto', 'asignaciones'
         ]
+
+class RegistroHorasSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = KpiInputData
+        fields = [
+            'date', 'time_entry_status', 'task', 'hours_worked',
+            'employee', 'employee_group', 'manager', 'project_status', 'ot'
+        ]

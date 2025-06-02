@@ -1,6 +1,6 @@
 import os
 import django
-import threading
+#import threading
 import pandas as pd
 from django.db.models import Max
 
@@ -11,9 +11,9 @@ from apps.proyectos.models import RegistroHoras
 
 class LoadData():
 
-    def load_csv(file_path):
+    def load_csv(file):
         ultima_fecha = RegistroHoras.objects.aggregate(Max('fecha'))['fecha__max']
-        df = pd.read_csv(file_path, encoding='utf-16')
+        df = pd.read_csv(file, encoding='utf-16')
         df['Date'] = pd.to_datetime(df["Date"], format='%m/%d/%Y')
         df = df.sort_values(by="Date")
         df[['OT', 'Planta']] = df['Project'].str.extract(r'((?:OT\d{2}-\d{1}-\d{3,5}|DCI-\d{2}))\s*[-–]?\s*(.*)')
@@ -40,5 +40,3 @@ class LoadData():
             except Exception as e:
                 print(f"Error al cargar la fila {row.to_dict()}: {e}")
                 continue
-
-        return "Datos cargados exitosamente."
