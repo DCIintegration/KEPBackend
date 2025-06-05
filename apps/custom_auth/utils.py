@@ -1,35 +1,44 @@
-class FinantialInformation:
-
-    def calcular_nomina_mensual(Empleado, Departamento):
+class FinancialInformation:  # Corregir nombre de clase
+    
+    @staticmethod
+    def calcular_nomina_mensual(empleados, departamento=None):
         """
-        Calcula la nómina mensual de un departamento.
+        Calcula la nómina mensual de empleados.
+        Si se proporciona un departamento, calcula solo para ese departamento.
         """
-        for empleado in Empleado:
-            if empleado.departamento == Departamento:   
-               Departamento.nomina_mensual += empleado.sueldo
-        return Departamento.nomina_mensual   
+        if departamento:
+            empleados_filtrados = empleados.filter(departamento=departamento, activo=True)
+        else:
+            empleados_filtrados = empleados.filter(activo=True)
+        
+        return sum(empleado.sueldo for empleado in empleados_filtrados)
 
-    def empleados_facturables(Empleado):
+    @staticmethod
+    def empleados_facturables(empleados):
         """
         Retorna la cantidad de empleados que son facturables,
         es decir, aquellos que pertenecen a Diseño o Ingeniería.
         """
-        count = 0
-        for empleado in Empleado:
-            if empleado.departamento and empleado.departamento.nombre.lower() in ['diseño', 'ingenieria']:
-                count += 1
-        return count
+        return empleados.filter(
+            departamento__nombre__icontains='diseño',
+            activo=True
+        ).count() + empleados.filter(
+            departamento__nombre__icontains='ingenieria',
+            activo=True
+        ).count()
 
-    
-    def horas_facturables(Empleado):
+    @staticmethod
+    def horas_facturables(empleados):
         """
-        Filtra y retorna una lista de horas facturables.
+        Calcula las horas facturables basadas en empleados facturables.
         """
-        horas = FinantialInformation.empleados_facturables(Empleado) * 8.5
-        return horas
+        empleados_fact = FinancialInformation.empleados_facturables(empleados)
+        return empleados_fact * 8.5 * 22  # 8.5 horas por día, 22 días laborables
 
-    def horas_plantas(Empleado):
+    @staticmethod
+    def horas_plantas(empleados):
         """
-        Filtra y retorna una lista de horas planta.
+        Calcula las horas planta de todos los empleados.
         """
-        pass
+        total_empleados = empleados.filter(activo=True).count()
+        return total_empleados * 8.5 * 22

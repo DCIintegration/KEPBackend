@@ -4,14 +4,21 @@ from django.contrib.auth.models import AbstractUser
 
 class Departamento(models.Model):
     nombre = models.CharField(max_length=30)
-    nomina_mensual = models.PositiveIntegerField(null=True, blank=True)
+    nomina_mensual = models.PositiveIntegerField(null=True, blank=True, default=0)
 
     def __str__(self):
         return self.nombre
-
+    
+    def empleados_departamento(self):
+        """Método para obtener empleados del departamento"""
+        return self.empleado_set.all()
+    
+    def calcular_nomina_total(self):
+        """Calcula la nómina total del departamento"""
+        return sum(empleado.sueldo for empleado in self.empleado_set.filter(activo=True))
 
 class Empleado(models.Model):
-    nombre_completo = models.CharField(max_length=30, default="User")
+    nombre_completo = models.CharField(max_length=100, default="User")  
     puesto = models.CharField(max_length=100)
     fecha_contratacion = models.DateField(default=datetime.today)
     activo = models.BooleanField(default=True)
@@ -22,14 +29,12 @@ class Empleado(models.Model):
     def __str__(self):
         return self.nombre_completo
 
-
 class CustomUser(AbstractUser):
-
     ROLES = (
         ('admin', 'Admin'),
         ('sistemas', 'Sistemas'),
         ('proyectos', 'Proyectos'),
-        ('espctador', 'Espectador'),
+        ('espectador', 'Espectador'),  
     )
     
     email = models.EmailField(unique=True)  

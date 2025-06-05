@@ -98,9 +98,16 @@ class LoginSerializer(serializers.Serializer):
 
 # ──────────────── DEPARTAMENTO ──────────────── #
 
-class DepartamentoSerializer(serializers.Serializer):
-    nombre = serializers.CharField(required=True)
-    nomina_mensual = serializers.IntegerField(required=True)
-
-    def calcular_nomina(self):
-        pass
+class DepartamentoSerializer(serializers.ModelSerializer):  # Cambiar a ModelSerializer
+    empleados_count = serializers.SerializerMethodField()
+    nomina_total = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Departamento
+        fields = ['id', 'nombre', 'nomina_mensual', 'empleados_count', 'nomina_total']
+    
+    def get_empleados_count(self, obj):
+        return obj.empleado_set.filter(activo=True).count()
+    
+    def get_nomina_total(self, obj):
+        return sum(empleado.sueldo for empleado in obj.empleado_set.filter(activo=True))

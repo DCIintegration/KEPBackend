@@ -279,7 +279,7 @@ def getDepartmentSalary(request, departamento_id):
         'nomina_mensual': total_nomina
     })
 
-@api_view(['GET'])
+@api_view(['PUT']) 
 @permission_classes([IsAuthenticated])
 def updateEmployeeSalary(request, empleado_id):
     empleado = get_object_or_404(Empleado, id=empleado_id)
@@ -291,11 +291,22 @@ def updateEmployeeSalary(request, empleado_id):
             'message': 'Sueldo no proporcionado'
         }, status=status.HTTP_400_BAD_REQUEST)
 
-    empleado.sueldo = nuevo_sueldo
-    empleado.save()
+    try:
+        # Validar que el sueldo sea un número positivo
+        nuevo_sueldo = int(nuevo_sueldo)
+        if nuevo_sueldo < 0:
+            raise ValueError("El sueldo no puede ser negativo")
+            
+        empleado.sueldo = nuevo_sueldo
+        empleado.save()
 
-    return Response({
-        'status': 'success',
-        'message': 'Sueldo actualizado correctamente',
-        'empleado': EmpleadoSerializer(empleado).data
-    })
+        return Response({
+            'status': 'success',
+            'message': 'Sueldo actualizado correctamente',
+            'empleado': EmpleadoSerializer(empleado).data
+        })
+    except (ValueError, TypeError) as e:
+        return Response({
+            'status': 'error',
+            'message': 'Sueldo inválido'
+        }, status=status.HTTP_400_BAD_REQUEST)

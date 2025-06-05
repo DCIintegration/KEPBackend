@@ -13,8 +13,8 @@ class KPIData:
 
 class KPI_Calculator:
     @staticmethod
-    def ELDR(kpi_data):
-        return kpi_data.total_horas_facturables * kpi_data.costo_por_hora
+    def EBLR(kpi_data):
+        return kpi_data.total_horas_facturables * kpi_data.costo_por_hora  #Pendiente indirect labor revenue 
 
     @staticmethod
     def RE(kpi_data):
@@ -22,7 +22,7 @@ class KPI_Calculator:
 
     @staticmethod
     def RBE(kpi_data):
-        return kpi_data.ganancia_total / kpi_data.numero_empleados_facturables
+        return kpi_data.ganancia_total / kpi_data.numero_empleados_facturables #Gnanacia total con estuardo, pendiente de sacar ese calculo de manera automatica
 
     @staticmethod
     def UBH(kpi_data):
