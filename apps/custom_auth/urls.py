@@ -22,5 +22,8 @@ urlpatterns = [
     # Rutas para informacion de KPIs
     path('finanzas/nomina/<int:departamento_id>/', views.nominaDepartamento, name='nomina_departamento'),
     path('finanzas/info/', views.infoFinancieraGlobal, name='info_financiera_global'),
+    # Rutas para obtener y actualizar salarios de los empleados
+    path('empleados/salario/<int:empleado_id>/', views.getEmployeeSalary, name='get_employee_salary'),
+    path('empleados/salario/update/<int:empleado_id>/', views.updateEmployeeSalary, name='update_employee_salary'),
 
 ]

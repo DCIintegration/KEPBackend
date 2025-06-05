@@ -258,3 +258,44 @@ def infoFinancieraGlobal(request):
         'horas_planta': FinantialInformation.horas_plantas(empleados),
     }
     return Response(data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getEmployeeSalary(request, empleado_id):
+    empleado = get_object_or_404(Empleado, id=empleado_id)
+    return Response({
+        'empleado': empleado.nombre_completo,
+        'sueldo': empleado.sueldo
+    })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getDepartmentSalary(request, departamento_id):
+    departamento = get_object_or_404(Departamento, id=departamento_id)
+    empleados = Empleado.objects.filter(departamento=departamento)
+    total_nomina = FinantialInformation.calcular_nomina_mensual(empleados, departamento)
+    return Response({
+        'departamento': departamento.nombre,
+        'nomina_mensual': total_nomina
+    })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def updateEmployeeSalary(request, empleado_id):
+    empleado = get_object_or_404(Empleado, id=empleado_id)
+    nuevo_sueldo = request.data.get('sueldo')
+
+    if nuevo_sueldo is None:
+        return Response({
+            'status': 'error',
+            'message': 'Sueldo no proporcionado'
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    empleado.sueldo = nuevo_sueldo
+    empleado.save()
+
+    return Response({
+        'status': 'success',
+        'message': 'Sueldo actualizado correctamente',
+        'empleado': EmpleadoSerializer(empleado).data
+    })
