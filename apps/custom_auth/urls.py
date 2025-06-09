@@ -3,7 +3,7 @@ from . import views
 
 urlpatterns = [
     # Rutas de usuarios
-    path('register/', views.UserRegistrationView.as_view(), name='register_user'),
+   
     path('profile/', views.getUserProfile, name='user_profile'),
     path('delete/<int:custom_user_id>/', views.deleteUser, name='delete_user'),
     path('update/<int:custom_user_id>/', views.updateUser, name='update_user'),
@@ -25,5 +25,6 @@ urlpatterns = [
     # Rutas para obtener y actualizar salarios de los empleados
     path('empleados/salario/<int:empleado_id>/', views.getEmployeeSalary, name='get_employee_salary'),
     path('empleados/salario/update/<int:empleado_id>/', views.updateEmployeeSalary, name='update_employee_salary'),
+    path('empleados/statistics/', views.getEmployeeStatistics, name='empleados_statistics'),
 
 ]

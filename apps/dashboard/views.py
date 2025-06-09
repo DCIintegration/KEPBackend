@@ -7,7 +7,7 @@ from apps.dashboard.models import Kpi, KpiTarget
 from .serializers import KpiSerializer, KpiTargetSerializer
 from apps.custom_auth.models import Empleado
 from .utils import KPI_Calculator, KPIData
-from apps.custom_auth.utils import FinantialInformation
+from apps.custom_auth.utils import FinancialInformation
 
 
 @api_view(['GET'])
@@ -181,7 +181,7 @@ def create_KPI_target(request):
 @permission_classes([IsAuthenticated])
 def calcular_kpi(request, kpi_name):
     empleados = Empleado.objects.all()
-    empleados_facturables = FinantialInformation.empleados_facturables()
+    empleados_facturables = FinancialInformation.empleados_facturables()
 
     kpi_data = KPIData(
         total_horas_facturables = empleados_facturables * 8.5 * 22,  

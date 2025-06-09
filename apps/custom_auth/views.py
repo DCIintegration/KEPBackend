@@ -1,39 +1,15 @@
 from rest_framework import status, generics
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from rest_framework_simplejwt.tokens import RefreshToken
-from .utils import FinantialInformation
+from apps.custom_auth.utils import FinancialInformation
 from apps.custom_auth.models import CustomUser, Empleado, Departamento
 from .serializers import EmpleadoSerializer, CustomUserRegisterSerializer, DepartamentoSerializer
 
 
 """-------- ENDPOINTS PARA USUARIOS ----------"""
-
-class UserRegistrationView(generics.CreateAPIView):
-    serializer_class = CustomUserRegisterSerializer
-    permission_classes = [IsAdminUser]
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            refresh = RefreshToken.for_user(user)
-            return Response({
-                'status': 'success',
-                'message': 'Usuario creado exitosamente',
-                'user': serializer.data,
-                'tokens': {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                }
-            }, status=status.HTTP_201_CREATED)
-        return Response({
-            'status': 'error',
-            'message': serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
-
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -46,13 +22,6 @@ def getUserProfile(request):
 @permission_classes([IsAuthenticated])
 def getUser(request, custom_user_id):
     user = get_object_or_404(CustomUser, id=custom_user_id)
-
-    if not request.user.is_superuser:
-        return Response({
-            'status': 'error',
-            'message': 'No tienes permisos para ver esta información'
-        }, status=status.HTTP_403_FORBIDDEN)
-
     serializer = EmpleadoSerializer(user.info)
     return Response(serializer.data)
 
@@ -60,12 +29,6 @@ def getUser(request, custom_user_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def listUsers(request):
-    if not request.user.is_superuser:
-        return Response({
-            'status': 'error',
-            'message': 'No tienes permisos para ver esta información'
-        }, status=status.HTTP_403_FORBIDDEN)
-
     users = CustomUser.objects.all()
     data = [EmpleadoSerializer(user.info).data for user in users if user.info]
     return Response(data)
@@ -75,13 +38,6 @@ def listUsers(request):
 @permission_classes([IsAuthenticated])
 def updateUser(request, custom_user_id):
     user = get_object_or_404(CustomUser, id=custom_user_id)
-
-    if not (request.user.is_superuser or request.user.id == user.id):
-        return Response({
-            'status': 'error',
-            'message': 'No tienes permisos para modificar este usuario'
-        }, status=status.HTTP_403_FORBIDDEN)
-
     serializer = EmpleadoSerializer(user.info, data=request.data, partial=True)
     if serializer.is_valid():
         serializer.save()
@@ -100,15 +56,8 @@ def updateUser(request, custom_user_id):
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def deleteUser(request, custom_user_id):
-    if not request.user.is_superuser:
-        return Response({
-            'status': 'error',
-            'message': 'No tienes permisos para eliminar usuarios'
-        }, status=status.HTTP_403_FORBIDDEN)
-
     user = get_object_or_404(CustomUser, id=custom_user_id)
     user.delete()
-
     return Response({
         'status': 'success',
         'message': 'Usuario eliminado correctamente'
@@ -154,7 +103,7 @@ def employeeDetails(request, empleado_id):
     empleado = get_object_or_404(Empleado, id=empleado_id)
     response_data = {
         "id": empleado.id,
-        "nombre completo": empleado.nombre_completo,
+        "nombre_completo": empleado.nombre_completo,
         "puesto": empleado.puesto,
         "fecha_contratacion": empleado.fecha_contratacion,
         "activo": empleado.activo,
@@ -163,6 +112,7 @@ def employeeDetails(request, empleado_id):
         "email": empleado.email,
     }
     return Response(response_data)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -179,6 +129,7 @@ def createEmployee(request):
         "status": "error",
         "message": serializer.errors
     }, status=400)
+
 
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
@@ -197,6 +148,7 @@ def updateEmployee(request, empleado_id):
         "message": serializer.errors
     }, status=400)
 
+
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def deleteEmployee(request, empleado_id):
@@ -205,6 +157,43 @@ def deleteEmployee(request, empleado_id):
     return Response({
         "status": "success",
         "message": "Empleado eliminado correctamente"
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getEmployeeStatistics(request):
+    """Obtener estadísticas generales de empleados"""
+    empleados = Empleado.objects.all()
+    
+    # Calcular estadísticas básicas
+    total_empleados = empleados.count()
+    empleados_activos = empleados.filter(activo=True).count()
+    empleados_inactivos = total_empleados - empleados_activos
+    
+    # Cálculos financieros
+    nomina_total = sum(emp.sueldo for emp in empleados.filter(activo=True))
+    promedio_sueldo = nomina_total / empleados_activos if empleados_activos > 0 else 0
+    
+    # Empleados por departamento
+    empleados_por_departamento = {}
+    for departamento in Departamento.objects.all():
+        count = departamento.empleado_set.filter(activo=True).count()
+        if count > 0:
+            empleados_por_departamento[departamento.nombre] = count
+    
+    data = {
+        'total_empleados': total_empleados,
+        'empleados_activos': empleados_activos,
+        'empleados_inactivos': empleados_inactivos,
+        'nomina_total': nomina_total,
+        'promedio_sueldo': promedio_sueldo,
+        'empleados_por_departamento': empleados_por_departamento
+    }
+    
+    return Response({
+        'status': 'success',
+        'estadisticas': data
     })
 
 
@@ -235,13 +224,12 @@ def departmentDetails(request, departamento_id):
 
 """-------- ENDPOINTS PARA INFORMACION PARA KPI ----------"""
 
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def nominaDepartamento(request, departamento_id):
     departamento = get_object_or_404(Departamento, id=departamento_id)
     empleados = Empleado.objects.filter(departamento=departamento)
-    total_nomina = FinantialInformation.calcular_nomina_mensual(empleados, departamento)
+    total_nomina = FinancialInformation.calcular_nomina_mensual(empleados, departamento)
     return Response({
         'departamento': departamento.nombre,
         'nomina_mensual': total_nomina
@@ -253,11 +241,12 @@ def nominaDepartamento(request, departamento_id):
 def infoFinancieraGlobal(request):
     empleados = Empleado.objects.all()
     data = {
-        'facturables': FinantialInformation.empleados_facturables(empleados),
-        'horas_facturables': FinantialInformation.horas_facturables(empleados),
-        'horas_planta': FinantialInformation.horas_plantas(empleados),
+        'facturables': FinancialInformation.empleados_facturables(empleados),
+        'horas_facturables': FinancialInformation.horas_facturables(empleados),
+        'horas_planta': FinancialInformation.horas_plantas(empleados),
     }
     return Response(data)
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -268,16 +257,18 @@ def getEmployeeSalary(request, empleado_id):
         'sueldo': empleado.sueldo
     })
 
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def getDepartmentSalary(request, departamento_id):
     departamento = get_object_or_404(Departamento, id=departamento_id)
     empleados = Empleado.objects.filter(departamento=departamento)
-    total_nomina = FinantialInformation.calcular_nomina_mensual(empleados, departamento)
+    total_nomina = FinancialInformation.calcular_nomina_mensual(empleados, departamento)
     return Response({
         'departamento': departamento.nombre,
         'nomina_mensual': total_nomina
     })
+
 
 @api_view(['PUT']) 
 @permission_classes([IsAuthenticated])
@@ -292,7 +283,6 @@ def updateEmployeeSalary(request, empleado_id):
         }, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        # Validar que el sueldo sea un número positivo
         nuevo_sueldo = int(nuevo_sueldo)
         if nuevo_sueldo < 0:
             raise ValueError("El sueldo no puede ser negativo")
@@ -310,3 +300,30 @@ def updateEmployeeSalary(request, empleado_id):
             'status': 'error',
             'message': 'Sueldo inválido'
         }, status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getEmployeeStatistics(request):
+    empleados = Empleado.objects.all()
+    total_empleados = empleados.count()
+    empleados_activos = empleados.filter(activo=True).count()
+    nomina_total = sum(emp.sueldo for emp in empleados.filter(activo=True))
+    promedio_sueldo = nomina_total / empleados_activos if empleados_activos > 0 else 0
+    
+    empleados_por_departamento = {}
+    for departamento in Departamento.objects.all():
+        count = departamento.empleado_set.filter(activo=True).count()
+        if count > 0:
+            empleados_por_departamento[departamento.nombre] = count
+    
+    return Response({
+        'status': 'success',
+        'estadisticas': {
+            'total_empleados': total_empleados,
+            'empleados_activos': empleados_activos,
+            'empleados_inactivos': total_empleados - empleados_activos,
+            'nomina_total': nomina_total,
+            'promedio_sueldo': promedio_sueldo,
+            'empleados_por_departamento': empleados_por_departamento
+        }
+    })
