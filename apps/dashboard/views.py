@@ -5,9 +5,9 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from apps.dashboard.models import Kpi, KpiTarget
 from .serializers import KpiSerializer, KpiTargetSerializer
-from apps.custom_auth.models import Empleado
-from .utils import KPI_Calculator, KPIData
-from apps.custom_auth.utils import FinancialInformation
+from .utils import KPI_Calculator, KPIDataCollector
+import datetime
+
 
 
 @api_view(['GET'])
@@ -180,21 +180,122 @@ def create_KPI_target(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def calcular_kpi(request, kpi_name):
-    empleados = Empleado.objects.all()
-    empleados_facturables = FinancialInformation.empleados_facturables()
-
-    kpi_data = KPIData(
-        total_horas_facturables = empleados_facturables * 8.5 * 22,  
-        total_horas_facturadas = empleados_facturables * 7.5 * 22,  
-        costo_por_hora = 250, 
-        ganancia_total = 300000, 
-        numero_empleados = empleados.count(),
-        numero_empleados_facturables = empleados_facturables,
-        dias_trabajados = 22
-    )
-
+    """
+    Calcula un KPI específico basado en datos reales de la base de datos
+    Parámetros de query opcionales:
+    - fecha_inicio: YYYY-MM-DD (por defecto: inicio del mes actual)
+    - fecha_fin: YYYY-MM-DD (por defecto: fecha actual)
+    - costo_hora: float (por defecto: calculado automáticamente)
+    """
     try:
-        resultado = KPI_Calculator().calculate_KPI(kpi_name.upper(), kpi_data)
-        return Response({kpi_name.upper(): resultado})
+        # Obtener parámetros de fecha
+        fecha_fin_str = request.GET.get('fecha_fin')
+        fecha_inicio_str = request.GET.get('fecha_inicio')
+        costo_hora_custom = request.GET.get('costo_hora')
+        
+        # Establecer fechas por defecto
+        if fecha_fin_str:
+            fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+        else:
+            fecha_fin = datetime.date.today()
+        
+        if fecha_inicio_str:
+            fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+        else:
+            # Por defecto, inicio del mes actual
+            fecha_inicio = fecha_fin.replace(day=1)
+        
+        # Validar que fecha_inicio <= fecha_fin
+        if fecha_inicio > fecha_fin:
+            return Response({
+                'error': 'La fecha de inicio no puede ser posterior a la fecha de fin'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Recopilar datos
+        costo_hora = float(costo_hora_custom) if costo_hora_custom else 250.0
+        kpi_data = KPIDataCollector.collect_kpi_data(fecha_inicio, fecha_fin, costo_hora)
+        
+        # Calcular KPI específico
+        calculator = KPI_Calculator()
+        resultado = calculator.calculate_KPI(kpi_name, kpi_data)
+        
+        # Agregar información del período
+        resultado['periodo'] = {
+            'fecha_inicio': fecha_inicio.isoformat(),
+            'fecha_fin': fecha_fin.isoformat(),
+            'dias_totales': (fecha_fin - fecha_inicio).days + 1
+        }
+        
+        return Response(resultado)
+        
     except ValueError as e:
-        return Response({"error": str(e)}, status=400)
+        return Response({
+            'error': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            'error': f'Error interno: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def calcular_todos_kpis(request):
+    """
+    Calcula todos los KPIs disponibles
+    Acepta los mismos parámetros que calcular_kpi
+    """
+    try:
+        # Obtener parámetros (mismo código que calcular_kpi)
+        fecha_fin_str = request.GET.get('fecha_fin')
+        fecha_inicio_str = request.GET.get('fecha_inicio')
+        costo_hora_custom = request.GET.get('costo_hora')
+        
+        if fecha_fin_str:
+            fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+        else:
+            fecha_fin = datetime.date.today()
+        
+        if fecha_inicio_str:
+            fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+        else:
+            fecha_inicio = fecha_fin.replace(day=1)
+        
+        if fecha_inicio > fecha_fin:
+            return Response({
+                'error': 'La fecha de inicio no puede ser posterior a la fecha de fin'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Recopilar datos
+        costo_hora = float(costo_hora_custom) if costo_hora_custom else 250.0
+        kpi_data = KPIDataCollector.collect_kpi_data(fecha_inicio, fecha_fin, costo_hora)
+        
+        # Calcular todos los KPIs
+        calculator = KPI_Calculator()
+        resultados = calculator.calculate_all_KPIs(kpi_data)
+        
+        # Agregar información del período a la respuesta
+        response_data = {
+            'periodo': {
+                'fecha_inicio': fecha_inicio.isoformat(),
+                'fecha_fin': fecha_fin.isoformat(),
+                'dias_totales': (fecha_fin - fecha_inicio).days + 1
+            },
+            'resumen_datos': {
+                'empleados_total': kpi_data.numero_empleados,
+                'empleados_facturables': kpi_data.numero_empleados_facturables,
+                'horas_planta_total': kpi_data.total_horas_planta,
+                'horas_facturables': kpi_data.total_horas_facturables,
+                'horas_facturadas': kpi_data.total_horas_facturadas,
+                'ganancia_total': kpi_data.ganancia_total,
+                'ingresos_directos': kpi_data.ingresos_directos,
+                'ingresos_indirectos': kpi_data.ingresos_indirectos
+            },
+            'kpis': resultados
+        }
+        
+        return Response(response_data)
+        
+    except Exception as e:
+        return Response({
+            'error': f'Error interno: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

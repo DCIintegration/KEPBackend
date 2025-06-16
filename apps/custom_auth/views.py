@@ -301,29 +301,3 @@ def updateEmployeeSalary(request, empleado_id):
             'message': 'Sueldo inválido'
         }, status=status.HTTP_400_BAD_REQUEST)
     
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def getEmployeeStatistics(request):
-    empleados = Empleado.objects.all()
-    total_empleados = empleados.count()
-    empleados_activos = empleados.filter(activo=True).count()
-    nomina_total = sum(emp.sueldo for emp in empleados.filter(activo=True))
-    promedio_sueldo = nomina_total / empleados_activos if empleados_activos > 0 else 0
-    
-    empleados_por_departamento = {}
-    for departamento in Departamento.objects.all():
-        count = departamento.empleado_set.filter(activo=True).count()
-        if count > 0:
-            empleados_por_departamento[departamento.nombre] = count
-    
-    return Response({
-        'status': 'success',
-        'estadisticas': {
-            'total_empleados': total_empleados,
-            'empleados_activos': empleados_activos,
-            'empleados_inactivos': total_empleados - empleados_activos,
-            'nomina_total': nomina_total,
-            'promedio_sueldo': promedio_sueldo,
-            'empleados_por_departamento': empleados_por_departamento
-        }
-    })

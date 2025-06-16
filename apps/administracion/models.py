@@ -7,7 +7,7 @@ class IngresoActividad(models.Model):
         ('Envio', 'Envio'),
         ('Equipo', 'Equipo'),
         ('Ingenieria de Control', 'Ingenieria de Control'),
-        ('PLC', 'PLC'),  # Corregido: era 'OLC'
+        ('PLC', 'PLC'),  
         ('Reparacion Servidores', 'Reparacion Servidores'),
         ('Servicio Electrico', 'Servicio Electrico'),
         ('Servicio Redes', 'Servicio Redes'),

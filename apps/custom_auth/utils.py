@@ -20,10 +20,10 @@ class FinancialInformation:  # Corregir nombre de clase
         es decir, aquellos que pertenecen a Diseño o Ingeniería.
         """
         return empleados.filter(
-            departamento__nombre__icontains='diseño',
+            departamento__nombre__icontains='Diseño',
             activo=True
         ).count() + empleados.filter(
-            departamento__nombre__icontains='ingenieria',
+            departamento__nombre__icontains='Ingenieria',
             activo=True
         ).count()
 

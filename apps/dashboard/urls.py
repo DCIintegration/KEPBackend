@@ -20,5 +20,5 @@ urlpatterns = [
 
     # Rutas para calculo de KPI
     path('kpi/<str:kpi_name>/', views.calcular_kpi, name='calcular_kpi'),
-
+    path('calcular/todos/', views.calcular_todos_kpis, name='calcular_todos_kpis'),
 ]
