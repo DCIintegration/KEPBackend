@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404
 from apps.dashboard.models import Kpi, KpiTarget
 from .serializers import KpiSerializer, KpiTargetSerializer
 from .utils import KPI_Calculator, KPIDataCollector
-import datetime
+from datetime import datetime
 
 
 

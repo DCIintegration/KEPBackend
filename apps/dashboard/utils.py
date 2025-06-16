@@ -57,7 +57,6 @@ class KPIDataCollector:
         registros = RegistroHoras.objects.filter(
             date__gte=fecha_inicio,
             date__lte=fecha_fin,
-            time_entry_status='Submitted'
         )
         
         # Horas totales trabajadas
@@ -75,18 +74,17 @@ class KPIDataCollector:
         
         # Horas por empleado facturable
         from apps.custom_auth.models import Empleado
-        empleados_facturables_nombres = Empleado.objects.filter(
+        # Contar TODOS los empleados facturables activos
+        empleados_facturables_count = Empleado.objects.filter(
             Q(departamento__nombre__icontains='Ingenieria') |
             Q(departamento__nombre__icontains='Diseño'),
             activo=True
-        ).values_list('nombre_completo', flat=True)
-        
-        horas_empleados_facturables = registros.filter(
-            employee__in=empleados_facturables_nombres
-        ).aggregate(
-            total=Sum('hours_worked')
-        )['total'] or 0
-        
+        ).count()
+
+        # Calcular horas totales
+        dias_periodo = (fecha_fin - fecha_inicio).days + 1
+        horas_empleados_facturables = empleados_facturables_count * dias_periodo * 8.5
+                
         return {
             'total_horas_planta': float(total_horas),
             'total_horas_facturables': float(horas_empleados_facturables),
@@ -129,6 +127,7 @@ class KPIDataCollector:
             
             ingresos_directos += ingresos_mes['directos'] or 0
             ingresos_indirectos += ingresos_mes['indirectos'] or 0
+            
         
         return {
             'ingresos_directos': float(ingresos_directos),

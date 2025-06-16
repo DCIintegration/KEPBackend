@@ -53,7 +53,7 @@ class IngresoActividad(models.Model):
     tipo_ingreso = models.CharField(
         max_length=50, 
         choices=TIPO_INGRESO,
-        default='Directo'  # Corregido: era 'Drecto'
+        default='Directo'  
     )
     
     # Campos de timestamp (recomendados)
@@ -63,7 +63,7 @@ class IngresoActividad(models.Model):
         return f"{self.actividad} - {self.monto} - {self.fecha}"
     
     class Meta:
-        unique_together = ('month', 'year')
+        
         verbose_name = "Ingreso de Actividad"
         verbose_name_plural = "Ingresos de Actividades"
         ordering = ['-fecha']

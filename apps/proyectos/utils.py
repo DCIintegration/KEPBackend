@@ -43,3 +43,6 @@ class LoadData():
             except Exception as e:
                 print(f"Error al cargar la fila {row.to_dict()}: {e}")
                 continue
+
+
+#Añadir columna de facturable o no facturable 
