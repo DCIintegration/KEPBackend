@@ -13,6 +13,7 @@ class IngresoActividadListCreateView(generics.ListCreateAPIView):
     queryset = IngresoActividad.objects.all()
     serializer_class = IngresoActividadSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
 
 class IngresoActividadRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):

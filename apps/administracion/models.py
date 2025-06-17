@@ -14,6 +14,7 @@ class IngresoActividad(models.Model):
         ('Software (Licencias)', 'Software (Licencias)'),
         ('Tableros', 'Tableros'),
         ('Viaticos', 'Viaticos'),
+        ('Servicio Drives', 'Servicio Drives')
     ]
     
     MONTHS = [

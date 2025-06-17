@@ -1,7 +1,7 @@
 # apps/dashboard/utils.py
 from dataclasses import dataclass
 from datetime import datetime, date
-from django.db.models import Sum, Q, Count
+from django.db.models import Sum, Q, Count, Avg
 from decimal import Decimal
 from typing import Optional, Dict, Any
 
@@ -21,6 +21,22 @@ class KPIData:
 
 class KPIDataCollector:
     """Clase para recopilar datos reales de la base de datos para cálculos de KPI"""
+    
+    @staticmethod
+    def calcular_dias_habiles(fecha_inicio: date, fecha_fin: date):
+        """Calcula solo días hábiles (lunes a viernes) en el período"""
+        from datetime import timedelta
+        
+        dias_habiles = 0
+        fecha_actual = fecha_inicio
+        
+        while fecha_actual <= fecha_fin:
+            # 0=lunes, 6=domingo, entonces 0-4 son días hábiles
+            if fecha_actual.weekday() < 5:  
+                dias_habiles += 1
+            fecha_actual += timedelta(days=1)
+        
+        return dias_habiles
     
     @staticmethod
     def get_empleados_data(fecha_inicio: date, fecha_fin: date):
@@ -64,32 +80,54 @@ class KPIDataCollector:
             total=Sum('hours_worked')
         )['total'] or 0
         
-        # Horas facturables (proyectos con OT activos)
-        horas_facturables = registros.filter(
+        # Horas FACTURADAS (solo proyectos con OT activos)
+        horas_facturadas = registros.filter(
             project_status=True,
             ot__isnull=False
         ).exclude(ot='').aggregate(
             total=Sum('hours_worked')
         )['total'] or 0
         
-        # Horas por empleado facturable
+        # Calcular días hábiles en el período
+        dias_habiles = KPIDataCollector.calcular_dias_habiles(fecha_inicio, fecha_fin)
+        
+        # Empleados facturables
         from apps.custom_auth.models import Empleado
-        # Contar TODOS los empleados facturables activos
+        
         empleados_facturables_count = Empleado.objects.filter(
             Q(departamento__nombre__icontains='Ingenieria') |
             Q(departamento__nombre__icontains='Diseño'),
             activo=True
         ).count()
-
-        # Calcular horas totales
-        dias_periodo = (fecha_fin - fecha_inicio).days + 1
-        horas_empleados_facturables = empleados_facturables_count * dias_periodo * 8.5
-                
+        
+        # Horas FACTURABLES: solo días hábiles × empleados × 8.5 horas
+        horas_facturables = empleados_facturables_count * dias_habiles * 8.5
+        
+        # COSTO POR HORA promedio basado en salarios mensuales
+        empleados_facturables = Empleado.objects.filter(
+            Q(departamento__nombre__icontains='Ingenieria') |
+            Q(departamento__nombre__icontains='Diseño'),
+            activo=True
+        )
+        
+        salario_promedio_mensual = empleados_facturables.aggregate(
+            promedio=Avg('sueldo')
+        )['promedio'] or 0
+        
+        # Horas mensuales estándar: 22 días hábiles × 8.5 horas
+        horas_mensuales_estandar = 22 * 8.5
+        
+        # Costo por hora = salario mensual promedio / horas mensuales estándar
+        costo_por_hora_promedio = salario_promedio_mensual / horas_mensuales_estandar if horas_mensuales_estandar > 0 else 0
+        
         return {
             'total_horas_planta': float(total_horas),
-            'total_horas_facturables': float(horas_empleados_facturables),
-            'total_horas_facturadas': float(horas_facturables),
-            'dias_unicos_trabajados': registros.values('date').distinct().count()
+            'total_horas_facturables': float(horas_facturables),
+            'total_horas_facturadas': float(horas_facturadas),
+            'dias_unicos_trabajados': registros.values('date').distinct().count(),
+            'dias_habiles_periodo': dias_habiles,
+            'costo_por_hora_promedio': float(costo_por_hora_promedio),
+            'salario_promedio_mensual': float(salario_promedio_mensual)
         }
     
     @staticmethod
@@ -128,7 +166,6 @@ class KPIDataCollector:
             ingresos_directos += ingresos_mes['directos'] or 0
             ingresos_indirectos += ingresos_mes['indirectos'] or 0
             
-        
         return {
             'ingresos_directos': float(ingresos_directos),
             'ingresos_indirectos': float(ingresos_indirectos),
@@ -144,12 +181,8 @@ class KPIDataCollector:
         horas_data = cls.get_horas_data(fecha_inicio, fecha_fin)
         ingresos_data = cls.get_ingresos_data(fecha_inicio, fecha_fin)
         
-        # Calcular costo por hora basado en nómina si hay empleados facturables
-        if empleados_data['empleados_facturables'] > 0 and horas_data['total_horas_facturables'] > 0:
-            costo_calculado = (empleados_data['nomina_facturables'] / 
-                             horas_data['total_horas_facturables'])
-        else:
-            costo_calculado = costo_hora_promedio
+        # Usar el costo por hora calculado basado en salarios
+        costo_calculado = horas_data['costo_por_hora_promedio'] if horas_data['costo_por_hora_promedio'] > 0 else costo_hora_promedio
         
         return KPIData(
             total_horas_facturables=horas_data['total_horas_facturables'],
@@ -159,7 +192,7 @@ class KPIDataCollector:
             ganancia_total=ingresos_data['ganancia_total'],
             numero_empleados=empleados_data['total_empleados'],
             numero_empleados_facturables=empleados_data['empleados_facturables'],
-            dias_trabajados=horas_data['dias_unicos_trabajados'],
+            dias_trabajados=horas_data['dias_habiles_periodo'],  # Usar días hábiles
             costo_nomina_total=empleados_data['nomina_total'],
             ingresos_directos=ingresos_data['ingresos_directos'],
             ingresos_indirectos=ingresos_data['ingresos_indirectos']
@@ -213,10 +246,10 @@ class KPI_Calculator:
     
     @staticmethod
     def LMM(kpi_data: KPIData) -> float:
-        """Labor Maximum Multiplier - Horas máximas facturables por empleado"""
+        """Labor Maximum Multiplier - Horas máximas facturables por empleado en días hábiles"""
         if kpi_data.numero_empleados_facturables == 0:
             return 0
-        # Asumiendo 8.5 horas por día por empleado facturable
+        # Solo días hábiles × 8.5 horas por empleado facturable
         return 8.5 * kpi_data.numero_empleados_facturables * kpi_data.dias_trabajados
     
     def calculate_KPI(self, kpi_name: str, kpi_data: KPIData) -> Dict[str, Any]:
@@ -240,7 +273,7 @@ class KPI_Calculator:
             'kpi': kpi_name.upper(),
             'valor': round(valor, 2),
             'datos_utilizados': {
-                'periodo_analizado': f"{kpi_data.dias_trabajados} días",
+                'periodo_analizado': f"{kpi_data.dias_trabajados} días hábiles",
                 'empleados_total': kpi_data.numero_empleados,
                 'empleados_facturables': kpi_data.numero_empleados_facturables,
                 'horas_planta': kpi_data.total_horas_planta,

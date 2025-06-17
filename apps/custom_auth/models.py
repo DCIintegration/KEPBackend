@@ -28,11 +28,7 @@ class Empleado(models.Model):
 
     def __str__(self):
         return self.nombre_completo
-    
-#Administracion 2
-#Ingenieria 3
-#Sistemas 4
-#Proyectos 5
+   
 
 class CustomUser(AbstractUser):
     ROLES = (
